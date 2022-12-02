@@ -65,19 +65,17 @@ If you try run the above code you'll see this error in the developer console:
 Update the server code like so:
 {% highlight javascript%}
 let express = require('express');
-let cors = require('cors');
-
 const service = express();
 
-const corsOptions = {
-    origin: 'localhost:1111',
-};
-service.use(cors(corsOptions));
+// add middleware to handle cross-origin requests
+service.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'localhost:1111');
+    next();
+});
 
 service.get('/hello', (_req, res) => {
     res.send('hello there!');
 })
-
 service.listen(2222, () => {
     console.log('listening on port 2222');
 });
