@@ -19,36 +19,44 @@ By default, web browsers define a [same-origin](https://developer.mozilla.org/en
 
 Say you have a website, and an api, and your website needs to call that api. If both are on the same origin everything is hunky-dory and you don't need to worry about CORs. However, if the api is hosted on a different origin then you'll need to use CORs to allow your client origin.
 
-Client code:
-
-{% highlight javascript%}
-const btnClick = () => {
+{% tabs log %}
+    {% tab log client code %}
+    {% highlight html %}
+<!DOCTYPE html>
+<head>
+</head>
+<script>
+    const btnClick = () => {
     let xhr = new XMLHttpRequest();
     // cross-origin GET request
     xhr.open('GET', 'http://localhost:2222/hello', true);
     xhr.onload = function() {
         console.log(xhr.responseText);
-        const data = xhr.responseText;
-        const outputField = document.getElementById('output');
-        outputField.textContent = data;
     }
     xhr.send();
 }
-{% endhighlight %}
+</script>
+<body>
+    <h1>Hello world</h1>
+    <button onclick="btnClick()">click me</button>
+</body>
+    {% endhighlight %}
+    {% endtab %}
 
-server code before:
-{% highlight javascript%}
+    {% tab log server code %}
+    {% highlight javascript%}
 let express = require('express');
-
 const service = express();
 service.get('/hello', (req, res) => {
     res.send('hello there!');
-})
-
+});
 service.listen(2222, () => {
     console.log('listening on port 2222');
 });
-{% endhighlight %}
+    {% endhighlight %}
+    {% endtab %}
+
+{% endtabs %}
 
 If you try run the above code you'll see this error in the developer console:
 
@@ -78,3 +86,6 @@ service.listen(2222, () => {
 
 TODO: Show new error message, add child tabs as described [here](https://github.com/Ovski4/jekyll-tabs)
 Talk about origin and where to find it.
+
+<script src="/assets/js/tabs.js"></script>
+<link rel="stylesheet" href="/assets/css/tabs.css">
