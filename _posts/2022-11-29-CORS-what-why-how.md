@@ -58,11 +58,12 @@ service.listen(2222, () => {
 
 {% endtabs %}
 
-If you try run the above code you'll see this error in the developer console:
+If you try run the above code, instead of seeing `Hello there!` you'll see this error in the developer console:
 
 ![cross-origin error: no 'Access-Control-Allow-Origin' header](/assets/cors-error-no-header.PNG)
 
-Update the server code like so:
+The browser has detected a cross-origin request and in doing so checks for an [Access-Control-Allow-Origin](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin) header. If one is not present then the server response is rejected. This header is defined on the server. We can update this like so: 
+
 {% highlight javascript%}
 let express = require('express');
 const service = express();
