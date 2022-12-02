@@ -82,9 +82,13 @@ service.listen(2222, () => {
 });
 {% endhighlight %}
 
+When we restart our server with the above changes and try running our client code we should see this in our developer console:
 
-TODO: Show new error message, add child tabs as described [here](https://github.com/Ovski4/jekyll-tabs)
-Talk about origin and where to find it.
+![cross-origin error: allowed origin not equal to supplid origin](/assets/cors-wrong-header-error.PNG)
+
+It seems we haven't configured the correct allowed origin in our api. So what exactly is an 'origin'?
+
+TODO: talk about 'origin' where it is in a url and how to view it in the network tab.
 
 <script src="/assets/js/tabs.js"></script>
 <link rel="stylesheet" href="/assets/css/tabs.css">
