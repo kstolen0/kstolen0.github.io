@@ -186,5 +186,27 @@ service.listen(2222, () => {
 });
 {% endhighlight %}
 
+## How do I allow requests from any origin?
+
+In some cases you may be building a public api and want any website to be able to reach your service. This is much simpler than allowing only a sub-set of origins and doesn't incur any caching side-effects. We just give `Access-Control-Allow-Origin` the value `*`.
+
+{% highlight javascript%}
+let express = require('express');
+const service = express();
+
+// add middleware to handle cross-origin requests
+service.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    next();
+});
+
+service.get('/hello', (_req, res) => {
+    res.send('hello there!');
+})
+service.listen(2222, () => {
+    console.log('listening on port 2222');
+});
+{% endhighlight %}
+
 <script src="/assets/js/tabs.js"></script>
 <link rel="stylesheet" href="/assets/css/tabs.css">
