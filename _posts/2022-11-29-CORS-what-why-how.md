@@ -119,5 +119,72 @@ Now when we restart our server once more and press the `click me` button on the 
 
 ![valid cross-origin request](/assets/cors-valid-response.PNG)
 
+## How do I allow requests from multiple origins?
+
+The `Access-Control-Allow-Origin` header only accepts a single origin. If your api needs to be used by multiple clients on different origins you may need to add additional behavior in your cors middleware to enable this. We can update our cors middleware to accept requests from both `http://localhost:1111` and `http://localhost:1234`. We can do this by inspecting the `origin` header in our request and comparing it against a set of allowed origins and if found, we can set our `Access-Control-Allow-Origin` response header to the origin value.
+
+{% highlight javascript%}
+let express = require('express');
+const service = express();
+
+const allowedOrigins = new Set()
+    .add('http://localhost:1111')
+    .add('http://localhost:1234');
+
+// add middleware to handle cross-origin requests
+service.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.has(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
+    next();
+});
+
+service.get('/hello', (_req, res) => {
+    res.send('hello there!');
+})
+service.listen(2222, () => {
+    console.log('listening on port 2222');
+});
+{% endhighlight %}
+
+In our above changes, we defined a set of `allowedOrigins` and added a couple origins we expect our api to be called from then in our cors middleware we grabbed the origin from our request and checked if it was contained within our set and if it was, we set the `Access-Control-Allow-Origin` header to the provided origin value. Now when we have a client calling from either of these origins the requests will succeed.
+
+### Side effects of allowing multiple origins
+
+A side-effect of allowing multiple origins is that the `Access-Control-Allowed-Origin` header may vary between requests which can cause caching issues.
+
+![allowed origin header in client on port 1111](/assets/cors-allow-origin-header-one.PNG)
+
+![allowed origin header in client on port 1234](/assets/cors-allow-origin-header-two.PNG)
+
+In order to protect against these issues, you should add the `Vary` response header with the value `Origin`. This instructs any proxy server to consider the `Origin` header in a request when deciding to use a cached response.
+
+{% highlight javascript%}
+let express = require('express');
+const service = express();
+
+const allowedOrigins = new Set()
+    .add('http://localhost:1111')
+    .add('http://localhost:1234');
+
+// add middleware to handle cross-origin requests
+service.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.has(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+    }
+    next();
+});
+
+service.get('/hello', (_req, res) => {
+    res.send('hello there!');
+})
+service.listen(2222, () => {
+    console.log('listening on port 2222');
+});
+{% endhighlight %}
+
 <script src="/assets/js/tabs.js"></script>
 <link rel="stylesheet" href="/assets/css/tabs.css">
