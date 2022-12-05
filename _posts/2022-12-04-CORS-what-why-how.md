@@ -9,11 +9,11 @@ categories: CORS
 
 # What is CORS?
 
-Cross Origin Resource Sharing (CORS) is a web standard created to enable web clients to make http requests to services hosted on different origins. CORS is configured on both the server and client. The server defines which type of cross-origin requests are allowed, and the client defines how the requests are made.
+Cross Origin Resource Sharing (CORS) is a web standard created to allow a server to indicate which origin other than its own from which a browser should permit loading resources. This allows web clients to make http requests to services hosted on different origins.
 
 # Why is CORS?
 
-By default, web browsers define a [same-origin](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy) policy that prevents client code requests to different origins. This is a critical security control that helps isolate potentially malicious web documents from accessing third party services. Working around this policy required significant effort, now the process is much simpler thanks to the CORS web standard.
+By default, web browsers define a [same-origin](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy) policy that prevents client code requests to different origins. This is a critical security control that helps isolate potentially malicious web documents from accessing third party services. CORS was created to help work around this policy by enabling the server to define which origins .
 
 # How is CORS?
 
