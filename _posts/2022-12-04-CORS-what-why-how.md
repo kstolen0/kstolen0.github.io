@@ -27,14 +27,10 @@ Let's enable CORS for a cross-origin request between two locally running service
 </head>
 <script>
     const btnClick = () => {
-    let xhr = new XMLHttpRequest();
-    // cross-origin GET request
-    xhr.open('GET', 'http://localhost:2222/hello', true);
-    xhr.onload = function() {
-        console.log(xhr.responseText);
+        fetch('http://localhost:2222/hello')
+            .then(response => response.text())
+            .then(data => console.log(data));
     }
-    xhr.send();
-}
 </script>
 <body>
     <h1>A very useful website</h1>
