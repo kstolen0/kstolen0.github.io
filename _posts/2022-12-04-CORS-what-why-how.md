@@ -5,8 +5,6 @@ date: 2022-12-04 16:00:00 +0800
 categories: CORS
 ---
 
-# (Get an Image Here)
-
 # What is CORS?
 
 Cross Origin Resource Sharing (CORS) is a web standard created to allow a server to indicate which origin other than its own from which a browser should permit loading resources. This allows web clients to make http requests to services hosted on different origins.
@@ -362,23 +360,16 @@ service.listen(2222, () => {
 
 At some point in time your client requests might become complex enough that before sending the request, the browser will first send a `pre-flight` request to the server to see if the client request has an allowed method and headers prior to sending the actual request. For more information about what triggers the browser to send the preflight request, [see here.](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#simple_requests)
 
-{% tabs updated-code %}
-     {% tab updated-code client code %}
-    {% highlight html %}
+{% highlight html %}
 <!DOCTYPE html>
 <head>
 </head>
 <script>
     const btnClick = () => {
         const options = {
-            method: 'POST',
             headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
                 'X-Correlation-Id': 'a guid'
-            }, 
-            body: JSON.stringify({
-                greetings: 'from the client',
-            }),
+            },
         };
         fetch('http://localhost:2222/hello', options)
             .then(response => response.text())
@@ -389,39 +380,9 @@ At some point in time your client requests might become complex enough that befo
     <h1>A very useful website</h1>
     <button onclick="btnClick()">click me</button>
 </body>
-    {% endhighlight %}
-    {% endtab %}
+{% endhighlight %}
 
-    {% tab updated-code server code %}
-    {% highlight javascript%}
-import express from 'express';
-
-const service = express();
-
-service.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:1111');
-    next();
-});
-
-service.post('/hello', express.json(), (req, res) => {
-    const greeting = req.body.greeting; 
-
-    process(greeting);
-
-    res.status(201).send('posted');
-});
-
-service.listen(2222, () => {
-    console.log('listening on port 2222');
-});
-    {% endhighlight %}
-    {% endtab %}
-{% endtabs %}
-
-
-Our client has been updated to send a post request to our server which will process the request body. We're also sending a custom correlation id header so we can track our request across systems. 
-
-When we try pressing the `click me` button however we see the following:
+Our client has been updated to also send a correlation id header in our api requests. Now when we try pressing the `click me` button we see the following:
 
 ![cors preflight request blocked the post request](/assets/cors-preflight-blocked.PNG)
 
@@ -446,20 +407,51 @@ service.use((req, res, next) => {
 
     {% tab cors-update-options cors library %}
     {% highlight javascript%}
-// at the time of writing, no extra work 
-// is required to allow custom headers. The cors library
-// just copies the headers in the preflight request if 
-// allowedHeaders is undefined
 const options = {
     origin: 'http://localhost:1111',
-    // allowedHeaders: 'content-type'
+    allowedHeaders: 'content-type'
 }
 service.use(cors(options));
     {% endhighlight %}
     {% endtab %}
 {% endtabs %}
 
-The following headers may be used in preflight requests: 
+If you're not sure what custom headers your clients might include and you don't care what they are, the pre-flight request includes the request headers that will be used so you can update `Access-Control-Allow-Headers` to the following:
+
+{% tabs cors-allow-all-headers %}
+    {% tab cors-allow-all-headers custom middleware %}
+    {% highlight javascript%}
+service.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'http://localhost:1111');
+    const method = req.method && req.method.toUpperCase && req.method.toUpperCase();
+
+    if (method === 'OPTIONS') {
+        const requestHeaders = req.headers['access-control-request-headers'];
+        res.setHeader('Access-Control-Allow-Headers', requestHeaders);
+
+        // Vary Access-Control-Request-Headers to prevent cached responses
+        res.setHeader('Vary', 'Access-Control-Request-Headers');
+    }
+
+    next();
+});
+    {% endhighlight %}
+    {% endtab %}
+
+    {% tab cors-allow-all-headers cors library %}
+    {% highlight javascript%}
+// at the time of writing, the cors library
+// copies 'access-control-request-headers' by default
+// so all headers are allowed
+const options = {
+    origin: 'http://localhost:1111',
+}
+service.use(cors(options));
+    {% endhighlight %}
+    {% endtab %}
+{% endtabs %}
+
+The following headers may be used in preflight checks: 
 
  header | description 
 ---|---
@@ -468,7 +460,6 @@ The following headers may be used in preflight requests:
 Access-Control-Allow-Methods | Indicates which methods are supported with cross-origin requests
 Access-Control-Allow-Headers | Indicates which headers are supported with cross-origin requests
 Access-Control-Max-Age | Indicates the number of seconds `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` can be cached
-
 
 # Conclusion
 
