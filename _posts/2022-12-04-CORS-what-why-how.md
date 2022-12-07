@@ -7,11 +7,11 @@ categories: CORS
 
 # What is CORS?
 
-Cross Origin Resource Sharing (CORS) is a web standard created to allow a server to indicate which origin other than its own from which a browser should permit loading resources. This allows web clients to make http requests to services hosted on different origins.
+Cross Origin Resource Sharing (CORS) is a web standard created to allow servers to define which origins other than its own are allowed to access its resources. This allows web clients to make http requests to services hosted on different origins.
 
 # Why is CORS?
 
-By default, web browsers define a [same-origin](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy) policy that prevents client code requests to different origins. This is a critical security control that helps isolate potentially malicious web documents from accessing third party services. CORS was created to help work around this policy by enabling the server to define which origins .
+By default, web browsers define a [same-origin](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy) policy that prevents client code requests to different origins. This is a critical security control that helps isolate potentially malicious web documents from accessing third party services. CORS was created to help work around this policy by enabling the server to define which origins can access it.
 
 # How is CORS?
 
@@ -356,7 +356,7 @@ service.listen(2222, () => {
     {% endtab %}
 {% endtabs %}
 
-# How are Pre-flight Requests?
+## How are Pre-flight Requests?
 
 At some point in time your client requests might become complex enough that before sending the request, the browser will first send a `pre-flight` request to the server to see if the client request has an allowed method and headers prior to sending the actual request. For more information about what triggers the browser to send the preflight request, [see here.](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#simple_requests)
 
@@ -461,9 +461,9 @@ Access-Control-Allow-Methods | Indicates which methods are supported with cross-
 Access-Control-Allow-Headers | Indicates which headers are supported with cross-origin requests
 Access-Control-Max-Age | Indicates the number of seconds `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` can be cached
 
-# Conclusion
+## Conclusion
 
-That about covers the basics of CORS. Hopefully this shed some light on what CORS is, why it exists, and how to start making cross-origin requests to your apis. There are a few more topics around this which are beyond the scope of this article such as sending cookies and custom headers in cross-origin requests which we cant go over now but maybe there'll be another article on this.
+That about covers the basics of CORS. Hopefully this shed some light on what CORS is, why it exists, and how to start making cross-origin requests to your apis. 
 
 If you're interested in learning more about CORS I would recommend [this book](https://www.manning.com/books/cors-in-action) by Monsur Hossain which goes into great detail on how to effectively enable your services for cross-origin requests. 
 
