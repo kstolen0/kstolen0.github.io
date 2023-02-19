@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "The four qualities of a good unit test"
-date: 2023-02-08 16:00:00 +0800
+date: 2023-02-18 16:00:00 +0800
 categories: unit testing engineering practices quality assurance QA CI CD
 ---
 
