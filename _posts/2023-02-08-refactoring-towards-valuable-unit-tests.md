@@ -2,7 +2,7 @@
 layout: post
 title: "Refactoring towards valuable unit tests"
 date: 2023-02-08 16:00:00 +0800
-categories: unit testing refactoring humble object
+categories: unit testing refactoring humble object engineering practices quality assurance QA CI CD
 ---
 
 The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that "prove" your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite). Enabling the use of effective unit tests often requires some refactoring of production code. 
@@ -60,3 +60,6 @@ The humble object pattern removes the testable parts of the code out of the diff
 This pattern also follows the single responsibility principle, which states that each class should have only one responsibility. In this case it means separating out the business logic (code depth) from the orchestration of the system (code width). Your domain logic should be deep, but narrow (having few collaborators), and your controllers should be wide, but shallow (having little complexity).
 
 ![shallow controllers and deep business logic](/assets/2023-02-08-refactoring-to-valuable-unit-tests/shallow-controller-narrow-logic.PNG)
+
+For more information on unit testing practices, check out [Unit Testing Principles, Practices, and Patterns](https://www.manning.com/books/unit-testing) by Vladimir Khorikov. 
+![unit testing principles practices and patterns](/assets/book-references/unit-testing-principles-practices-and-patterns.jpg)
