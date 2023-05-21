@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8">
+<wsdl:definitions name="MyService"
+    targetNamespace="http://example.com/my-service.xml"
+    xmlns:tns="http://example.com/my-service.xml"
+    xmlns:xsdl="http://example.com/my-service.xml"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://example.com/stockquote.xsd" xmlns:xsd="http://www.w3.org/2000/10/XMLSchema">
+            <xsd:element name="number" type="decimal" />
+        </xsd:schema>
+    </wsdl:types>
+
+    <wsdl:message name="IncrementNumberInput">
+        <wsdl:part name="body" element="xsdl:number" />
+    </wsdl:message>
+
+    <wsdl:message name="IncrementNumberOutput">
+        <wsdl:part name="body" element="xsdl:number" />
+    </wsdl:message>
+
+    <wsdl:portType name="MyServicePortType">
+        <wsdl:operation name="IncrementNumber">
+            <wsdl:input message="tns:IncrementNumberInput" />
+            <wsdl:output message="tns:IncrementNumberOutput" />
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <wsdl:binding name="MyServiceSoapBinding" type="tns:MyServicePortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http/" />
+        <wsdl:operation name="IncrementNumber">
+            <soap:operation soapAction="http://exmaple.com/IncrementNumber" />
+            <wsdl:input>
+                <soap:body use="literal" />
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal" />
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+
+</wsdl:definitions>
