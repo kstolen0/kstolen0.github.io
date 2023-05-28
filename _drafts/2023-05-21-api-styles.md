@@ -30,6 +30,10 @@ The structure of a SOAP message are as follows:
 SOAP services typically include a WSDL (Web Service Description Language) document.
 This document describes the operations available on a given service, and the messages that can be exchanged. These documents are used as a contract between a client and server for exchanging messages and can even be imported into tools such as SoapUI and Postman.
 
+Below is an example api using SOAP as its messaging protocol.
+
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40?file=%2Fsrc%2Findex.js%3A22%2C28&embed=1" allowfullscreen></iframe>
+
 ## REST
 # REpresentational State Transfer 
 REST is the most common protocol used for modern web apis. Many messaging formats can be used, JSON is common.
@@ -55,6 +59,10 @@ Where appropriate, responses should include links so the client can discover oth
 # HATEOAS
 Hypermedia as the Engine of Application State is the practice of including links to related URIs in api responses so that the client needs minimal knowledge of a web service. This practice decouples the client from needing to hardcode all a web server's URIs thus making the server easier to change.
 
+Below is an example api using REST as its messaging protocol. This services exposes book resources.
+
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/flamboyant-shannon-m2btd0?embed=1" allowfullscreen></iframe>
+
 ## GraphQL
 Developed by Meta (the Facebook) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
 One of the problems with REST endpoints is often a given URI doesn't include exactly what a client needs. The response may contain no enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.
@@ -65,7 +73,9 @@ GraphQL APIs can also be used a an API Gateway for multiple web servers.
 
 Resources exposed by GraphQL services are defined in a Schema Definition Language (SDL). Similar to a SOAP's wsdl files (but more consise), this schema defines the types, fields, relationships, an operations supported by a given API and serves as the contract between a client and server.
 
+Below is an example of the same Library API in our REST example, but this time using GraphQL
 
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk?embed=1" allowfullscreen></iframe>
 
 
 ## gRPC
