@@ -5,12 +5,18 @@ date: 2023-05-21 12:00:00 +0800
 categories: api
 ---
 
-Web apis enable systems to share information across the internet. 
+![web services talking to eachother](/assets/2023-05-21-api-protocols/web.PNG)
 
-client and service communicate using a shared web language, e.g. JSON or XML.
+Web apis enable systems to share information across the internet. You are probably familiar with REST APIs, however there a many alternatives to REST which may fit your use-case. Below we talk about multiple API protocols including SOAP, REST, GraphQL, and gRPC.
+
+Each of these descriptions also include an example implementation of a Library web service that allows a client to query for books, borrow, return, add, and remove books.
 
 ## SOAP
 # Simple Object Access Protocol
+
+![a cartoon computer washing itself with soap in a bath in the syle of edvard munch](/assets/2023-05-21-api-protocols/soap-api.PNG)
+That was an AI generated image...
+
 Introduced in the late 1990s, SOAP is a message specification for exchanging information between web services. Unlike some other protocols, SOAP is transport independent and as such, can be used over HTTP, SMTP, TCP, UDP, etc.
 Given that these messages are structured in XML, and have multiple parts, SOAP messages may be much larger and therefore slower than its counterparts.
 
@@ -32,10 +38,12 @@ This document describes the operations available on a given service, and the mes
 
 Below is an example api using SOAP as its messaging protocol.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40?file=%2Fsrc%2Findex.js%3A22%2C28&embed=1" allowfullscreen></iframe>
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40?embed=1" allowfullscreen></iframe>
 
 ## REST
 # REpresentational State Transfer 
+![a computer sleeping in bed the syle of vincent van gogh](/assets/2023-05-21-api-protocols/rest-api.PNG)  
+
 REST is the most common protocol used for modern web apis. Many messaging formats can be used, JSON is common.
 RESTful apis share the following six guiding constraints:
 
@@ -54,7 +62,7 @@ REST Apis are resource based and expose these resources via their URIs. Resource
 * **DELETE** - Delete a resource e.g. `DELETE my.service.com/api/books/1`
 
 Given a client has a representation of a resource, it should have enough information to be able to modify or delete the resource on the server. e.g. Getting a book (or books) may include the book id which can be used to call DELETE on that book.  
-Where appropriate, responses should include links so the client can discover other resources easily. Following HATEOAS practices.
+Where appropriate, responses should include links so the client can discover other resources easily, following HATEOAS practices.
 
 # HATEOAS
 Hypermedia as the Engine of Application State is the practice of including links to related URIs in api responses so that the client needs minimal knowledge of a web service. This practice decouples the client from needing to hardcode all a web server's URIs thus making the server easier to change.
@@ -64,8 +72,11 @@ Below is an example api using REST as its messaging protocol. This services expo
 <iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/flamboyant-shannon-m2btd0?embed=1" allowfullscreen></iframe>
 
 ## GraphQL
+
+![graph ql](/assets/2023-05-21-api-protocols/graphql.PNG)
+
 Developed by Meta (the Facebook) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
-One of the problems with REST endpoints is often a given URI doesn't include exactly what a client needs. The response may contain no enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.
+One of the problems with REST endpoints is often a given URI doesn't include exactly what a client needs. The response may contain not enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.
 
 GraphQL allows a client to specify only exactly what it requires from a single endpoint. Take the Library Service for example. A Book resource may have many properties associated with it which most clients aren't necessarily concerned with. Instead of requesting the entire Book resource (or list of resources) the client can query just the book title and author. The server will return only the values the client requests.
 
@@ -73,7 +84,7 @@ GraphQL APIs can also be used a an API Gateway for multiple web servers.
 
 Resources exposed by GraphQL services are defined in a Schema Definition Language (SDL). Similar to a SOAP's wsdl files (but more consise), this schema defines the types, fields, relationships, an operations supported by a given API and serves as the contract between a client and server.
 
-Below is an example of the same Library API in our REST example, but this time using GraphQL
+Below is an example of the same Library API in our REST example, but this time using GraphQL.
 
 <iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk?embed=1" allowfullscreen></iframe>
 
@@ -81,4 +92,6 @@ Below is an example of the same Library API in our REST example, but this time u
 ## gRPC
 Relies on HTTP for its transport layer. 
 gRPC allows a web api to define any kind of function calls, as opposed to a set of predefined ones (e.g. GET POST PUT etc).
+
+<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc?embed=1" allowfullscreen></iframe>
 
