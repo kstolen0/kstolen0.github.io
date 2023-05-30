@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "API Protocols: SOAP, REST & More"
-date: 2023-05-21 12:00:00 +0800
-categories: api
+date: 2023-05-30 12:00:00 +0800
+categories: api protocol rest soap grpc graphql
 ---
 
 ![web services talking to eachother](/assets/2023-05-21-api-protocols/web.PNG)
@@ -75,7 +75,7 @@ Below is an example api using REST as its messaging protocol. This services expo
 
 ![graph ql](/assets/2023-05-21-api-protocols/graphql.PNG)
 
-Developed by Meta (the Facebook) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
+Developed by Meta (Facebook?) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
 One of the problems with REST endpoints is often a given URI doesn't include exactly what a client needs. The response may contain not enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.
 
 GraphQL allows a client to specify only exactly what it requires from a single endpoint. Take the Library Service for example. A Book resource may have many properties associated with it which most clients aren't necessarily concerned with. Instead of requesting the entire Book resource (or list of resources) the client can query just the book title and author. The server will return only the values the client requests.
@@ -90,8 +90,26 @@ Below is an example of the same Library API in our REST example, but this time u
 
 
 ## gRPC
-Relies on HTTP for its transport layer. 
-gRPC allows a web api to define any kind of function calls, as opposed to a set of predefined ones (e.g. GET POST PUT etc).
+
+Google Remote Procedure Call, developed by Google and now maintained by the Cloud Native Computing Foundation, is an open-source, highly performant, lightweight messaging protocol for communicating between web services. With gRPC, a client can directly call a method on a server as if it were a local method. 
+
+This protocol is based around the concept of defining a shared API interface which describes the operations available on a given server, and the messages that can be exchanged between the client and server. Unlike in SOAP, which uses XML as its Shared Definition Language (IDL), gRPC uses a [protocol buffers](https://protobuf.dev/) as its IDL, resulting in much simpler contracts.
+
+As gRPC relies on HTTP/2 as its transport layer it is able to parse data in binary format which is more light-weight than JSON and XML.
+
+gRPC also supports bidirectional streaming wherein both the client and server send a sequence of messages using a read-write stream.
+
+Before you run away to add gRPC layers to all your APIs, it should be worth noting that HTTP/2 is not supported by most modern browsers, so this protocol is best suited between system-system communication.
 
 <iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc?embed=1" allowfullscreen></iframe>
 
+## Summary
+
+This was just an introduction to some current and emerging web service messaging protocols you will likely encounter throughout your career. 
+
+ _ | Pros | Cons
+---|---|---
+SOAP | * Supports Message Level Security<br/>* Widely supported <br/>* Structured interfaces * Transport layer independent <br /> | * Heavy-weight messages <br />* Complex to configure
+REST | * Simple protocol built on widely adopted standards <br />* Supports response caching <br /> | * Limited realtime communication support <br />* Not suited for complex or hierarchical data structures
+GraphQL |* flexible data fetching, no over/under fetching<br />* Introspection enables clients to explore api schema | * Lack of standardized caching and authn
+gRPC |* Highly performant <br />* Strong client/server contracts <br />* supports bidirectional streaming | * Limited browser support
