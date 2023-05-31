@@ -14,24 +14,24 @@ There are many examples of software design patterns and code smells which help g
 3. Protection against regressions
 4. Resistance to refactoring
 
-## Fast feedback
+# Fast feedback
 
 Fast feedback is an essential quality of a unit test. Faster tests enable more tests to be run, as well as enabling the tests to be run more often. Tests that run quickly drastically shorten the development feedback loop, notifying you of any regressions, and reduce the cost of fixing those regressions.
 
 Slow tests dissuade developers from running them more often, and writing more tests. This also delays the development feedback loop and prolong the period during which bugs remain unnoticed.
 
-## Maintainability
+# Maintainability
 
 Test maintainability consists of two components: 
-### How hard is it to understand the test
+## How hard is it to understand the test
 
 This relates to the size of the test, the fewer the lines of code of a test, the easier it is to understand. It's also easier to change a small test.
 
-### How hard is it to run the test
+## How hard is it to run the test
 
 If a test works with out-of-process dependencies, those dependencies will need to be maintained and operational during the test's lifetime.
 
-## Protection against regressions
+# Protection against regressions
 
 A regression happens when a feature unexpectedly stops working after change. The more features in a system, the more likely changes to one feature will result in regressions in other features. For this reason it is crucial to develop protections against these regressions before they're identified by the users of your system. 
 
@@ -40,7 +40,7 @@ To evaluate how well a given test scores against protecting against regressions,
 * The complexity of the code
 * The domain significance of the code
 
-## Resistance to refactoring
+# Resistance to refactoring
 
 A test's resistance to refactoring is the degree to which a test can sustain a refactoring of the underlying application code without failing. 
 

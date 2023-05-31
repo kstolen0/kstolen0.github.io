@@ -30,13 +30,13 @@ Microservices can be considered the implementation of the logical concepts in Do
 
 It is important not to focus on creating the smallest possible service but to instead define the granularity of a single service. The purpose of the service boundary is to capture a domain or workflow, these boundaries might not always be so "small". Below are some guidelines to help define the granularity of a bounded context.
 
-#### Define the purpose
+### Define the purpose
 What is the inspiration for the service boundary?
 
-#### Identify transactions
+### Identify transactions
 Identifying entities that need to cooperate in a transaction may help identify a service boundary. It is best to avoid transactions across distributed systems as these can introduce additional complexity.
 
-#### Choreographed services
+### Choreographed services
 If a collection of services require extensive communication to function, it may be worth bundling these services into a single service.
 
 ## Data Isolation
@@ -50,7 +50,7 @@ While the microservice approach prefers duplication over coupling, there are com
 
 The sidecar pattern allows coupling of operations while decoupling domain concerns. With this pattern all operational concerns exist inside each service as a distinct component. When it comes time to update the monitoring tooling, the component can be updated and all microservices get the new functionality.
 
-## Pros and Cons 
+# Pros and Cons 
 
 | Pros | Cons |
 | --- | --- |

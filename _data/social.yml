@@ -1,0 +1,9 @@
+- title: Email
+  url: mailto:kristian@kristianstolen.com
+  icon: fas fa-envelope
+- title: GitHub
+  url: https://github.com/kstolen0
+  icon: fab fa-github
+- title: LinkedIn
+  url: https://www.linkedin.com/in/kstolen
+  icon: fab fa-linkedin

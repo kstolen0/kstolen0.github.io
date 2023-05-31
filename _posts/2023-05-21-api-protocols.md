@@ -11,8 +11,8 @@ Web apis enable systems to share information across the internet. You are probab
 
 Each of these descriptions also include an example implementation of a Library web service that allows a client to query for books, borrow, return, add, and remove books.
 
-## SOAP
-# Simple Object Access Protocol
+# SOAP
+## Simple Object Access Protocol
 
 ![a cartoon computer washing itself with soap in a bath in the syle of edvard munch](/assets/2023-05-21-api-protocols/soap-api.PNG)
 That was an AI generated image...
@@ -36,12 +36,10 @@ The structure of a SOAP message are as follows:
 SOAP services typically include a WSDL (Web Service Description Language) document.
 This document describes the operations available on a given service, and the messages that can be exchanged. These documents are used as a contract between a client and server for exchanging messages and can even be imported into tools such as SoapUI and Postman.
 
-Below is an example api using SOAP as its messaging protocol.
+[See here](https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40) for the example Library api using SOAP as its messaging protocol.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40?embed=1" allowfullscreen></iframe>
-
-## REST
-# REpresentational State Transfer 
+# REST
+## REpresentational State Transfer 
 ![a computer sleeping in bed the syle of vincent van gogh](/assets/2023-05-21-api-protocols/rest-api.PNG)  
 
 REST is the most common protocol used for modern web apis. Many messaging formats can be used, JSON is common.
@@ -54,7 +52,7 @@ RESTful apis share the following six guiding constraints:
 5. **Layered System:** The a restful architecture may be composed of multiple layers. Each layer should not know of any other layers other than the immediate layers with which they're interfacing.
 6. **Code on Demand:** Server can also provide executable code to the client
 
-# More on Uniform Interfaces
+## More on Uniform Interfaces
 REST Apis are resource based and expose these resources via their URIs. Resources can be accessed or modified via a set of common HTTP methods: 
 * **GET** - Request a given resource e.g. `GET my.service.com/api/books/1`
 * **PUT** - Modify a given resource e.g. `PUT my.service.com/api/books/1`
@@ -64,14 +62,12 @@ REST Apis are resource based and expose these resources via their URIs. Resource
 Given a client has a representation of a resource, it should have enough information to be able to modify or delete the resource on the server. e.g. Getting a book (or books) may include the book id which can be used to call DELETE on that book.  
 Where appropriate, responses should include links so the client can discover other resources easily, following HATEOAS practices.
 
-# HATEOAS
+## HATEOAS
 Hypermedia as the Engine of Application State is the practice of including links to related URIs in api responses so that the client needs minimal knowledge of a web service. This practice decouples the client from needing to hardcode all a web server's URIs thus making the server easier to change.
 
-Below is an example api using REST as its messaging protocol. This services exposes book resources.
+[See here](https://codesandbox.io/p/sandbox/2023-05-27-rest-api-example-m2btd0) for the same example api using REST as its messaging protocol.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/flamboyant-shannon-m2btd0?embed=1" allowfullscreen></iframe>
-
-## GraphQL
+# GraphQL
 
 ![graph ql](/assets/2023-05-21-api-protocols/graphql.PNG)
 
@@ -84,12 +80,9 @@ GraphQL APIs can also be used a an API Gateway for multiple web servers.
 
 Resources exposed by GraphQL services are defined in a Schema Definition Language (SDL). Similar to a SOAP's wsdl files (but more consise), this schema defines the types, fields, relationships, an operations supported by a given API and serves as the contract between a client and server.
 
-Below is an example of the same Library API in our REST example, but this time using GraphQL.
+[See here](https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk) for the same example api, but this time using GraphQL.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk?embed=1" allowfullscreen></iframe>
-
-
-## gRPC
+# gRPC
 
 Google Remote Procedure Call, developed by Google and now maintained by the Cloud Native Computing Foundation, is an open-source, highly performant, lightweight messaging protocol for communicating between web services. With gRPC, a client can directly call a method on a server as if it were a local method. 
 
@@ -101,9 +94,9 @@ gRPC also supports bidirectional streaming wherein both the client and server se
 
 Before you run away to add gRPC layers to all your APIs, it should be worth noting that HTTP/2 is not supported by most modern browsers, so this protocol is best suited between system-system communication.
 
-<iframe style="border: 1px solid rgba(0, 0, 0, 0.1);border-radius:2px;" width="800" height="450" src="https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc?embed=1" allowfullscreen></iframe>
+Finally, [see here](https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc) for the same example api with a gRPC interface.
 
-## Summary
+# Summary
 
 This was just an introduction to some current and emerging web service messaging protocols you will likely encounter throughout your career. 
 

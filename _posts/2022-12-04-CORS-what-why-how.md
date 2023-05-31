@@ -166,7 +166,7 @@ Now when we restart our server once more and press the `click me` button on the 
 
 ![valid cross-origin request](/assets/cors-valid-response.PNG)
 
-## How do I allow requests from multiple origins?
+# How do I allow requests from multiple origins?
 
 The `Access-Control-Allow-Origin` header only accepts a single origin. If your api needs to be used by multiple clients on different origins you may need to add additional behavior in your cors middleware to enable this. We can update our cors middleware to accept requests from both `http://localhost:1111` and `http://localhost:1234`.
 
@@ -239,7 +239,7 @@ service.listen(2222, () => {
 
 The two implementations above are similar, but how they handle an invalid origin slightly differs. In the custom middleware, we still accept and continue processing the request, whereas the cors library will throw an Error and we'll stop processing the request. The client call will still fail in both cases, however the response status code would be 200 in the former case, and 500 in the latter case. Throwing an error would be the safer action in this case as this helps protect against CSRF attacks. CSRF is beyond the scope of this article.
 
-### Side effects of allowing multiple origins
+## Side effects of allowing multiple origins
 
 A side-effect of allowing multiple origins is that the `Access-Control-Allowed-Origin` header may vary between requests which can cause caching issues.
 
@@ -311,7 +311,7 @@ service.listen(2222, () => {
     {% endtab %}
 {% endtabs %}
 
-## How do I allow requests from any origin?
+# How do I allow requests from any origin?
 
 In some cases you may be building a public api and want any website to be able to reach your service. This is much simpler than allowing only a sub-set of origins and doesn't incur any caching side-effects. In our custom middleware, we just give `Access-Control-Allow-Origin` the value `*`. In the cors library, we just don't provide an origin in our cors options (we could also not define any options in this case as it's an optional parameter).
 
@@ -356,7 +356,7 @@ service.listen(2222, () => {
     {% endtab %}
 {% endtabs %}
 
-## How are Pre-flight Requests?
+# How are Pre-flight Requests?
 
 At some point in time your client requests might become complex enough that before sending the request, the browser will first send a `pre-flight` request to the server to see if the client request has an allowed method and headers prior to sending the actual request. For more information about what triggers the browser to send the preflight request, [see here.](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#simple_requests)
 
@@ -461,7 +461,7 @@ Access-Control-Allow-Methods | Indicates which methods are supported with cross-
 Access-Control-Allow-Headers | Indicates which headers are supported with cross-origin requests
 Access-Control-Max-Age | Indicates the number of seconds `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` can be cached
 
-## Conclusion
+# Conclusion
 
 That about covers the basics of CORS. Hopefully this shed some light on what CORS is, why it exists, and how to start making cross-origin requests to your apis. 
 

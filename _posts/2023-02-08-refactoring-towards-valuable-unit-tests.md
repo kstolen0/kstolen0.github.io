@@ -19,19 +19,19 @@ A collaborator is a type of dependency that is either mutable (e.g. a class that
 
 These two dimensions provide us with four types of code: 
 
-# Domain model & algorithms
+## Domain model & algorithms
 
 The domain model and algorithms not specific to the domain may often require complex code, but the number of collaborators should be limited.
 
-# Trivial code 
+## Trivial code 
 
 Examples of this code are parameterless constructors or simple object properties. This code also has little domain significance.
 
-# Controllers 
+## Controllers 
 
 This code has many collaborators but doesn't contain any complex logic and instead coordinates the work between other components with domain significance.
 
-# Overcomplicated code 
+## Overcomplicated code 
 
 This is code that has a high number of collaborators, and also contains complex business logic or algorithms.
 
@@ -47,7 +47,7 @@ Overcomplicated code should be split into it's two its adjacent quadrants.
 
 ![remove overcomplicated code](/assets/2023-02-08-refactoring-to-valuable-unit-tests/remove-overcomplicated-code.PNG)
 
-## Welcome the Humble Object Pattern
+# Welcome the Humble Object Pattern
 
 One method of simplifying overcomplicated code can be achieved using the humble object pattern. Complicated code that is difficult to test is often coupled to a framework dependency, such as UI or database. 
 

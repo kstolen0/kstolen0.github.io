@@ -29,7 +29,7 @@ github_username: kstolen0
 linkedin_username: kstolen
 
 # Build settings
-theme: minima
+theme: monophase
 plugins:
   - jekyll-feed
   - jekyll-tabs

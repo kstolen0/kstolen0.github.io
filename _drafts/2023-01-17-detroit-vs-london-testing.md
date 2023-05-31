@@ -11,18 +11,18 @@ The aim of unit testing is to enable the sustainable growth of software systems.
 
 Tests still require some overhead, first when introducing a test suite, and on-going when adding tests for new features or updating tests to reflect changes in the application.
 
-# What is a unit test?
+## What is a unit test?
 
 A unit test is an automated test that has the following three attributes: 
 1. It verifies a small piece of code (a unit)
 2. It runs quickly
 3. It runs in an isolated manner
 
-# The difference between the Detroit and London Styles of Unit Testing
+## The difference between the Detroit and London Styles of Unit Testing
 
 The primary difference between the detroit and london styles of unit testing lie in what we mean by "isolated". 
 
-## The London Take
+# The London Take
 
 The London take on this means isolating the system under test from its collaborators. If a class has a dependency on another class, that dependency should be replaced with a test double. This enables the tester to isolate the class behaviour from any external influences.
 
@@ -39,7 +39,7 @@ It also simplifies testing guidelines for a project. Instead of figuring out how
 ![every class has a test class](/assets/2023-01-17-testing/every-class-has-a-test-class.PNG)
 
 
-## The Detroit Take
+# The Detroit Take
 
 The Detroit take (aka the Classical take) on isolation means to attempt to isolate the unit tests from each other.
 
