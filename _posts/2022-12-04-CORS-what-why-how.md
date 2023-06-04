@@ -3,6 +3,7 @@ layout: post
 title: "CORS...  What? Why? How?"
 date: 2022-12-04 16:00:00 +0800
 categories: CORS
+description: Cross Origin Resource Sharing often catches web developers off-guard. Learn about What CORs is, Why it exists, and How to integrate it into your services.
 ---
 
 # What is CORS?

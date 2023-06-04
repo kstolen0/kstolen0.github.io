@@ -3,6 +3,7 @@ layout: post
 title: "The Value of Value Objects"
 date: 2023-03-21 16:00:00 +0800
 categories: domain driven design primitives design patterns clean code value objects primitive obsession
+description: Learn how to implement your Ubiquitous Language as Value Objects to help keep your codebase simple and reduce the risk of bugs.
 ---
 
 ![this is a Domain Driven Design thing](/assets/2023-03-21-value-objects/d%20d%20d.PNG)

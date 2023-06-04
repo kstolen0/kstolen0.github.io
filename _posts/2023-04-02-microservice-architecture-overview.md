@@ -3,6 +3,7 @@ layout: post
 title: "An Introduction to Microservice Architectures"
 date: 2023-04-05 16:00:00 +0800
 categories: ddd domain driven design microservices architecture
+description: Microservices are all the rage at the moment. This article describes the topology of a microservice architecture and reviews their pros and cons.
 ---
 
 The microservice architectural style is heavily influenced by Domain Driven Design (DDD), in particular, the concept of a Bounded Context. A bounded context is the domain in which a system is built. This system may contain many entities and behaviours implemented in the form of code and database schemas which would be coupled together. Within a bounded context, these internal models (e.g. database schema) are never coupled to anything outside the bounded context. This allows a context to only define what it needs and not accommodate other contexts. 

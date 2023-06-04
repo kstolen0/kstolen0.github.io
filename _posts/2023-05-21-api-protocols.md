@@ -3,6 +3,7 @@ layout: post
 title: "API Protocols: SOAP, REST & More"
 date: 2023-05-30 12:00:00 +0800
 categories: api protocol rest soap grpc graphql
+description: There's more to web services than REST APIs. Here we discuss some alternatives and weigh up their strengths and weaknesses. An example api is provided for each protocol.
 ---
 
 ![web services talking to eachother](/assets/2023-05-21-api-protocols/web.PNG)

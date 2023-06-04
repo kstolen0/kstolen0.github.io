@@ -3,6 +3,7 @@ layout: post
 title: "Refactoring towards valuable unit tests"
 date: 2023-02-08 16:00:00 +0800
 categories: unit testing refactoring humble object engineering practices quality assurance QA CI CD
+description: Poorly designed code can lead to poorly designed unit tests which can get in the way of delivering value. Here we discuss one refactoring technique to help prevent this.
 ---
 
 The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that "prove" your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite). Enabling the use of effective unit tests often requires some refactoring of production code. 

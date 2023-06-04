@@ -3,6 +3,7 @@ layout: post
 title: "The four qualities of a good unit test"
 date: 2023-02-18 16:00:00 +0800
 categories: unit testing engineering practices quality assurance QA CI CD
+description: Good tests enable the sustainable growth of software systems. Here we describe some of the qualities of what "good" means when talking about tests.
 ---
 
 The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that "prove" your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite).
