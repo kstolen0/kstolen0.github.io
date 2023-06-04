@@ -21,6 +21,7 @@
 title: Stolen Ideas
 tagline: Thoughts and learnings about software development
 email: kristian@kristianstolen.com
+baseurl: ""
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 github_username: kstolen0
 linkedin_username: kstolen
