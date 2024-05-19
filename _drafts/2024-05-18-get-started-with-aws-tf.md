@@ -46,8 +46,8 @@ Now when you open a terminal in the current directory and run `terraform init` T
 ## Step 2 - Create an AWS EC2 instance
 
 Now we have successfully initialized terraform with the aws provider we can define aws resources in our code. In this step we will create two entities:
-1. And AWS EC2 instance resource
-2. an aws ami image data reference for EC2 to run.
+1. An AWS EC2 instance resource
+2. An aws ami image data reference for EC2 to run.
 
 Create a new file called `unicorn-api.tf`.  
 Inside the file, add:
@@ -84,13 +84,56 @@ It fails! But why?
 
 Even though we've created an aws account, and downloaded Terraform, and the aws provider for Terraform to use, we still need Terraform to authenticate with aws in order to create these resources.
 
-## Step 3
-Open up the AWS management console in your browser of choice and login to your aws account.
+## Step 3 - Create an AWS API Key for terraform
 
-Open the `IAM` service and ...
+In order for Terraform to manage resources in AWS it needs access to an aws account. We can accomplish this by creating an aws account specifically for this tool and defining corresponding API keys for it.
 
-(create new user with admin priveledges)
-(assign api key for that user)
-(create aws-provider file)
-(add provider creds to that file)
-(ensure file is not committed to version control (add to .gitignore)
+. Create a new file called `aws-provider-key.tf` and add the following content:
+
+```terraform
+# /aws-provider-key.tf
+
+provider "aws" {
+    access_key = ""
+    secret_key = ""
+    region = "ap-southeast-2"
+}
+```
+
+You can opt to use a region closer to you. As I'm in Australia I'm opting to use the australian region.
+
+
+> These API keys should be treated like credentials. Do not commit this file to source control. Otherwise the key could be discovered and you'll need to replace them.
+
+
+Now we've defined the provider in Terraform, we need to create the aws api key for it to use.
+
+Login to AWS and open the `IAM` service
+
+![screenshot of the IAM service in aws]()
+
+Open the `Users` page with IAM console
+and select `Create user` (This will likely be a button on the top right)
+
+![screenshot of the users page with the create user button]()
+
+Give the user a name, e.g. `terraform-user` and do not provide it access to the aws console (There shouldn't be a need)
+
+![ss]()
+
+On the `Set permissions` page, select `Attach policies directly` and select the `AdministatorAccess` policy, then click `Next`. This role policy allows the user to do just about anything (except a few tasks reserved for the root account).
+
+Review the change and then click `Create user`
+
+Now we have created the user, select the user that was just created and navigate to `Security credentials`
+
+Scroll down to `Access keys` and select `Create access key`
+
+From the options menu select `Command Line Interface (CLI) and select the confirmation box acknowledging there are alternatives
+
+Give a helpful description tag, e.g. `key-for-local-terraform` and click `Create access key`
+
+Copy the Access key and secret key values into your `aws-provider.tf` file.
+
+
+Now try running `terraform init` to register the aws provider credentials and then run `terraform apply`.
