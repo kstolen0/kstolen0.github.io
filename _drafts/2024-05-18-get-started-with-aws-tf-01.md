@@ -197,9 +197,12 @@ required_providers {
 }
 ```
 
-Next, create a new file named `ssh_key.tf` and add the following:
+Since we've added new providers, we need to run `terraform init` to download their modules.  
+
+Create a new file named `ssh_key.tf` and add the following:
 
 ```terraform
+# infra/ssh_key.tf
 
 # create a tls key pair using rsa algorithm
 resource "tls_private_key" "ssh_key" {
@@ -223,6 +226,7 @@ resource "aws_key_pair" "key_pair_for_ec2_instance" {
 Next, add the following property to your ec2 instance:
 
 ```terraform
+# infra/unicorn-api.tf
 
 resource "aws_instance" "web_service_vm" {
 
@@ -234,6 +238,7 @@ resource "aws_instance" "web_service_vm" {
 With those resources defined and linked to our EC2 instance, we can once again reapply our terraform config to deploy the changes to aws.
 
 Now that those changes have been applied we should now have a new local file, `key.pem`. Before we try sshing into our instance, we need to set the access permissions for this file. Something like `chmod 400 key.pem` should suffice. This will give the current account read permissions for the file, and no permissions for other users.  
+# infra/unicorn-api.
 For more information on how chmod works, [see here](https://ss64.com/bash/chmod.html).  
 
 Next we can find the IPv4 DNS name of the instance from the aws management console, this will be something `ec2-11-11-11-11.your-aws-region.compute.amaonaws.com`.  
