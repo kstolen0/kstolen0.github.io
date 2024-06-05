@@ -237,8 +237,7 @@ resource "aws_instance" "web_service_vm" {
 ```
 With those resources defined and linked to our EC2 instance, we can once again reapply our terraform config to deploy the changes to aws.
 
-Now that those changes have been applied we should now have a new local file, `key.pem`. Before we try sshing into our instance, we need to set the access permissions for this file. Something like `chmod 400 key.pem` should suffice. This will give the current account read permissions for the file, and no permissions for other users.  
-# infra/unicorn-api.
+Now that those changes have been applied we should now have a new local file, `key.pem`. Before we try ssh into our instance, we need to set the access permissions for this file. Something like `chmod 400 key.pem` should suffice. This will give the current account read permissions for the file, and no permissions for other users.  
 For more information on how chmod works, [see here](https://ss64.com/bash/chmod.html).  
 
 Next we can find the IPv4 DNS name of the instance from the aws management console, this will be something `ec2-11-11-11-11.your-aws-region.compute.amaonaws.com`.  
