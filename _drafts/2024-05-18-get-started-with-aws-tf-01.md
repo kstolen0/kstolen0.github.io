@@ -175,7 +175,6 @@ Once the resources have been updated and the latest IP address copied, we can no
 
 In this step we're going to create an ssh key pair using terraform. The public key will be added to the ec2 instance as one of its known ssh public keys.  
 We'll save the private key as a local file so we can reference it when we try connect to the ec2 instance.
-We will also define a security group for our EC2 instance to allow incoming connections from our local device along port 22.
 
 First, add the following providers to our `main.tf`:
 
