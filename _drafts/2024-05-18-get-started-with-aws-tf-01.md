@@ -8,7 +8,7 @@ description: In this multi-part blog series we will learn how to create a modern
 
 # Introduction
 
-In this series of blog posts, we will build an enterprise scale web infrastructure; Starting small with a simple virtual machine image, and iterating as our needs develop until eventually we will have a highly availble, secure, and resilient web infrastructure capable of meeting the needs of tens of customers! All of this will be managed with the popular Infrastructure As Code tool, Terraform.  
+In this series of blog posts, we will build an enterprise scale web infrastructure; Starting small with a simple virtual machine image, and iterating as our needs develop until eventually we will have a highly available, secure, and resilient web infrastructure capable of meeting the needs of tens of customers! All of this will be managed with the popular Infrastructure As Code tool, Terraform.  
 In this first post, we will:
  1. Configure Terraform with a pre-existing AWS account
  2. Deploy an EC2 instance to AWS
@@ -17,10 +17,16 @@ In this first post, we will:
 
 ## Prerequisites
 
+It would be helpful for you to have some familiarity with the following concepts/tools:
+* What [Infrastructure as Code](https://aws.amazon.com/what-is/iac/) (IaC) is and some IaC tools (e.g. Terraform, Pulumi, CloudFormation)
+* What a [cloud service provider](https://azure.microsoft.com/en-au/resources/cloud-computing-dictionary/what-is-a-cloud-provider) is (e.g. AWS, Google Cloud, Azure)
+* Familiarity with using the terminal
+
 Before we start building, you'll want to have setup a couple things:
 
 1. Have an [AWS Account](https://aws.amazon.com/free/) setup
 2. Installed [Terraform cli](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
+3. An IDE of your preference (I use Neovim, btw)
 
 ## Step 0 - Create a folder for your project
 
