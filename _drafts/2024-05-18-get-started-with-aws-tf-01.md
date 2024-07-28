@@ -19,7 +19,7 @@ In this first post, we will:
 
 Before we start building, you'll want to have setup a couple things:
 
-1. Have an [AWS Account](https://aws.amazon.com) setup
+1. Have an [AWS Account](https://aws.amazon.com/free/) setup
 2. Installed [Terraform cli](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
 
 ## Step 0 - Create a folder for your project
