@@ -91,7 +91,7 @@ Even though we've created an aws account, and downloaded Terraform, and the aws 
 
 ## Step 2.1 - Create an AWS API Key for terraform
 
-In order for Terraform to manage resources in AWS it needs access to an aws account. We can accomplish this by creating an aws account specifically for this tool and defining corresponding API keys for it.
+In order for Terraform to manage resources in AWS it needs access to your AWS account. We can accomplish this by creating credentials specifically for this project and configuring Terraform to use those credentials to create and manage resources.
 
 Create a new file called `aws-provider-key.tf` and add the following content:
 
