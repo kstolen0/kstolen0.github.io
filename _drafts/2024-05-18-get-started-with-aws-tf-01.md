@@ -24,7 +24,7 @@ Before we start building, you'll want to have setup a couple things:
 
 ## Step 0 - Create a folder for your project
 
-As we'll be building our infractructure using Terraform, which is an IaC tool, we'll need somewhere to write this code.
+As we'll be building our infrastructure using Terraform, we'll need somewhere to write this code.
 Let's create a folder called `my-unicorn-project` and inside that folder create another folder called `infra`.
 
 ## Step 1 - Define our Terraform provider
