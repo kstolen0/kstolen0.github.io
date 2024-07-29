@@ -57,8 +57,8 @@ Now when you open a terminal in the current directory and run `terraform init` T
 ## Step 2 - Create an AWS EC2 instance
 
 Now we have successfully initialized terraform with the aws provider we can define aws resources in our code. In this step we will create two things:
-1. An AWS EC2 instance resource
-2. An aws ami image data reference for EC2 to run
+1. An AWS [EC2 instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html) resource
+2. An aws [Amazon Maxhine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) (ami) data reference for EC2 to run
 
 Create a new file called `unicorn-api.tf`.  
 Inside the file, add:
@@ -85,11 +85,16 @@ resource "aws_instance" "unicorn_vm" {
         Name = "Unicorn"
     }
 }
+
+output "unicorn_vm_public_ip" {
+  description = "Public IP address of the unicorn vm"
+  value = aws_instance.unicorn_vm.public_ip
+}
 ```
 
-Now when you open the terminal and run `terraform plan` the logs will show that we're adding one new resource.  
+In this file We've defined an AWS eC2 [resource](https://developer.hashicorp.com/terraform/language/resources) and attached an AWS AMI [data source](https://developer.hashicorp.com/terraform/language/data-sources) to install onto it. We've also defined an [output](https://developer.hashicorp.com/terraform/language/values/outputs) which returns the EC2 instance's public ip address. We'll need this later.
 
-Now try running `terraform apply` to... err... apply the plan.  
+Now when you open the terminal and run `terraform plan` to review the proposed changes prio to applying them.
 
 It fails! But why?
 
@@ -111,24 +116,32 @@ provider "aws" {
 }
 ```
 
-You can opt to use a region closer to you. As I'm in Australia I'm opting to use the australian region.
+You can opt to use a region closer to you. As I'm in Australia I'm opting to use the australian region. [See here](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/) to find out what other regions AWS have available and pick the one closest to you.
 
 Next you need to create two things in the AWS Management Console:
 1. Create a [new User](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) with administrator permission
 2. Create an [access key](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html) for the user
 
-Take the access key and corresponding secret key and add them to your provider key your defined earlier.
+> Note, giving users more access than they require (such as admin access) is not good practice. Users should only ever be given the mininum level of access in order to complete a task. I'll leave it as an exercise to the reader to find out the minimum required roles should be for this user. For more information about the principle of least privilege, [see here](https://www.cyberark.com/what-is/least-privilege/).
+
+Take the access key and corresponding secret key and add them to your provider key you defined earlier.
 
 > These API keys should be treated like credentials. Do not commit this file to source control. Otherwise the key could be discovered and you'll need to replace them.
 
-Now try running `terraform apply` once more and everything should be hunky dory.
+Now try running `terraform plan` once more. Your output should look something like this:
+
+![output from the terraform plan command](/assets/getting-started-with-aws-tf-01/example-plan.png)
+
+Now try running `terraform apply` to deploy this EC2 resource to AWS.
 
 ## Step 3 - Connect to our EC2 Instance
 
 If you've made it this far it means you've successfully configured terraform with an aws account and have deployed an EC2 instance to AWS. Nice!  
 Let's try connect to this instance.  
-We can find the ip address by logging in to the AWS Management Console and opening the instance details within EC2.
-Copy the IPv4 address and in a terminal run `ping <the-ip-address>`.
+
+You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run `terraform output` to print all the outputs from the project, or just `terraform output <name>` to print just a single output.  
+
+Copy the IP address and in a terminal run `ping <the-ip-address>`.
 
 No response...  
 
