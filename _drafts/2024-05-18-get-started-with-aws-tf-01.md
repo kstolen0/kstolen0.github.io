@@ -26,7 +26,7 @@ Before we start building, you'll want to have setup a couple things:
 
 1. Have an [AWS Account](https://aws.amazon.com/free/) setup
 2. Installed [Terraform cli](https://developer.hashicorp.com/terraform/install?product_intent=terraform)
-3. An IDE of your preference (I use Neovim, btw)
+3. An IDE or text editor of your preference (I use Neovim, btw)
 
 ## Step 0 - Create a folder for your project
 
@@ -51,7 +51,7 @@ terraform {
 }
 ```
 
-Now when you open a terminal in the current directory and run `terraform init` Terraform will download the required provider modules so they can be used to configure our services.
+Now when you open a terminal in the current directory and run [terraform init](https://developer.hashicorp.com/terraform/cli/commands/init) Terraform will download the required provider modules so they can be used to configure our services.
 
 
 ## Step 2 - Create an AWS EC2 instance
@@ -94,7 +94,7 @@ output "unicorn_vm_public_ip" {
 
 In this file We've defined an AWS eC2 [resource](https://developer.hashicorp.com/terraform/language/resources) and attached an AWS AMI [data source](https://developer.hashicorp.com/terraform/language/data-sources) to install onto it. We've also defined an [output](https://developer.hashicorp.com/terraform/language/values/outputs) which returns the EC2 instance's public ip address. We'll need this later.
 
-Now when you open the terminal and run `terraform plan` to review the proposed changes prio to applying them.
+Now when you open the terminal and run [terraform plan](https://developer.hashicorp.com/terraform/cli/commands/plan) to review the proposed changes prio to applying them.
 
 It fails! But why?
 
@@ -132,26 +132,26 @@ Now try running `terraform plan` once more. Your output should look something li
 
 ![output from the terraform plan command](/assets/getting-started-with-aws-tf-01/example-plan.png)
 
-Now try running `terraform apply` to deploy this EC2 resource to AWS.
+Now try running [terraform apply](https://developer.hashicorp.com/terraform/cli/commands/apply) to deploy this EC2 resource to AWS.
 
 ## Step 3 - Connect to our EC2 Instance
 
 If you've made it this far it means you've successfully configured terraform with an aws account and have deployed an EC2 instance to AWS. Nice!  
 Let's try connect to this instance.  
 
-You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run `terraform output` to print all the outputs from the project, or just `terraform output <name>` to print just a single output.  
+You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run [terraform output](https://developer.hashicorp.com/terraform/cli/commands/output) to print all the outputs from the project, or just `terraform output <name>` to print just a single output.  
 
 Copy the IP address and in a terminal run `ping <the-ip-address>`.
 
 No response...  
 
-This is because when we define the EC2 instance, a default security group is applied to it. This security group allows incoming connections on any port using any protocol but only from other aws resources within the same security group...
+This is because when we define the EC2 instance, a default [security group](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html) is applied to it. This security group allows incoming connections on any port using any protocol but only from other aws resources within the same security group...
 
 If we want to connect to our instance, we need to make our own rules.
 
 When defining a security group rule, we declare if the rule is an ingress or egress rule (incoming or outgoing). We can also declare which port the rule applies to and the ip address range.
 
-We don't want just anyone to connect to this service so for now we'll only allow our local device's public ip address in the address range. You can find this easily using a site like [whatismyipaddress.com](www.whatismyipaddress.com). 
+We don't want just anyone to connect to this service so for now we'll only allow our local device's public ip address in the address range. You can find this easily using a site like [whatismyipaddress.com](https://www.whatismyipaddress.com). 
 
 Open `unicon-api.tf` and add the following resources, providing your public ip for `cidr_ipv4` value:
 
@@ -166,9 +166,7 @@ resource "aws_vpc_security_group_ingress_rule" "allow_from_local_device" {
   security_group_id = aws_security_group.unicorn_api_security_group.id
   description       = "allow ingress on any port from any ip"
   cidr_ipv4         = "<YOUR_IP_ADDRESS_HERE>/32"
-  ip_protocol       = "tcp"
-  from_port         = 22
-  to_port           = 22
+  ip_protocol       = -1
 }
 ```
 
@@ -177,7 +175,7 @@ Next, apply the security group to the ec2 instance, adding the following propert
 ```terraform 
 # /infra/unicorn-api.tf
 
-resource "aws_instance" "web_service_vm" {
+resource "aws_instance" "unicorn_vm" {
 
     # ...
 
@@ -190,7 +188,13 @@ Once the resources have been updated and the latest IP address copied, we can no
 
 `ping <the-ip-address>`
 
+![output from successfully applying the terraform config and pinging the vm](/assets/getting-started-with-aws-tf-01/example-ping.png)
+
 ## Step 4 - SSH into the EC2 Instance
+
+Before we move on it's good practice when experimenting with terraform and public cloud resources to not leave those resources active otherwise you might run up a surprising bill (depending on what you're deploying). What we've created so far isn't so expensive but to get used to the habit let's quickly destroy these resources by running [terraform destroy](https://developer.hashicorp.com/terraform/cli/commands/destroy).
+
+---
 
 In this step we're going to create an ssh key pair using terraform. The public key will be added to the ec2 instance as one of its known ssh public keys.  
 We'll save the private key as a local file so we can reference it when we try connect to the ec2 instance.
@@ -233,6 +237,7 @@ resource "tls_private_key" "ssh_key" {
 resource "local_file" "rsa_key" {
     content = tls_private_key.ssh_key.private_key_openssh
     filename = "${path.module}/key.pem"
+    file_permission = "0600"
 }
 
 # define an aws key pair, providing the public key from the tls key pair defined above
@@ -254,15 +259,14 @@ resource "aws_instance" "web_service_vm" {
   key_name = aws_key_pair.key_pair_for_ec2_instance.key_name
 }
 ```
-With those resources defined and linked to our EC2 instance, we can once again reapply our terraform config to deploy the changes to aws.
 
-Now that those changes have been applied we should now have a new local file, `key.pem`. Before we try ssh into our instance, we need to set the access permissions for this file. Something like `chmod 400 key.pem` should suffice. This will give the current account read permissions for the file, and no permissions for other users.  
-For more information on how chmod works, [see here](https://ss64.com/bash/chmod.html).  
+With those resources defined and linked to our EC2 instance, we can once again reapply our terraform config to deploy the changes to aws.
 
 Next we can find the IPv4 DNS name of the instance from the aws management console, this will be something `ec2-11-11-11-11.your-aws-region.compute.amaonaws.com`.  
 Copy that dns name and then in a console run:  
 `ssh ec2-user@<EC2-DNS-NAME> -i 'key.pem'`. 
 
+![the output from successfuly sshing into an aws hosted vm](/assets/getting-started-with-aws-tf-01/example-ssh.png)
 And voila! You've successfully:
  * Deployed a virtual machine instance to a public cloud environment
  * Confiured network security rules on the instance to accept incoming connections from only your device
