@@ -293,4 +293,4 @@ In the next post we will update our EC2 instance to build and run a web server f
 
 ## Bonus Step!
 
-In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance, however, in most cases we don't want our rules to be this lose (remember the [pricipal of least privilege](https://www.cyberark.com/what-is/least-privilege/)). How might you change your security group rule to only allow ssh connections to the instance?
+In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance, however, in most cases we don't want our rules to be this lose (remember the [principle of least privilege](https://www.cyberark.com/what-is/least-privilege/)). How might you change your security group rule to only allow ssh connections to the instance?
