@@ -1,8 +1,8 @@
 ---
 layout: post
 title: "Getting Started with AWS and Terraform: 01 - Creating an EC2 Intance"
-date: 2024-05-17 16:00:00 +0800
-categories: aws terraform infratructure IaC
+date: 2024-08-07 16:00:00 +0800
+categories: aws Terraform infratructure IaC
 description: In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this first post we will create an EC2 instance to host our web service in AWS using Terraform
 ---
 
@@ -51,15 +51,15 @@ terraform {
 }
 ```
 
-Now when you open a terminal in the current directory and run [terraform init](https://developer.hashicorp.com/terraform/cli/commands/init) Terraform will download the required provider modules so they can be used to configure our services.
+Open a terminal in the `infra` directory and run [terraform init](https://developer.hashicorp.com/terraform/cli/commands/init). Terraform will download the required provider modules so they can be used to configure our services.
 
 
 ## Step 2 - Create an AWS EC2 instance
 
-Now we have successfully initialized terraform with the AWS provider we can define AWS resources in our code. In this step we will create three things:
+Now we have successfully initialized Terraform with the AWS provider we can define AWS resources in our code. In this step we will create three things:
 1. An AWS [EC2 instance](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html) resource
 2. An AWS [Amazon Machine Image](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html) (ami) data reference for EC2 to run
-3. A [terraform output](https://developer.hashicorp.com/terraform/language/values/outputs) to return the public ip address for the created EC2 instance so we can easily connect to it
+3. A [Terraform output](https://developer.hashicorp.com/terraform/language/values/outputs) to return the public ip address for the created EC2 instance so we can easily connect to it
 
 Create a new file called `unicorn-api.tf`.  
 Inside the file, add:
@@ -97,13 +97,13 @@ In this file We've defined an AWS EC2 [resource](https://developer.hashicorp.com
 
 We've also defined an [output](https://developer.hashicorp.com/terraform/language/values/outputs) which returns the EC2 instance's public ip address. We'll need this later.
 
-Now when you open the terminal and run [terraform plan](https://developer.hashicorp.com/terraform/cli/commands/plan) to review the proposed changes prio to applying them.
+Now when you open the terminal and run [terraform plan](https://developer.hashicorp.com/terraform/cli/commands/plan) to review the proposed changes prior to applying them.
 
 It fails! But why?
 
 Even though we've created an AWS account, and downloaded Terraform, and the AWS provider for Terraform to use, we still need Terraform to authenticate with AWS in order to create these resources.
 
-## Step 2.1 - Create an AWS API Key for terraform
+## Step 2.1 - Create an AWS API Key for Terraform
 
 In order for Terraform to manage resources in AWS it needs access to your AWS account. We can accomplish this by creating credentials specifically for this project and configuring Terraform to use those credentials to create and manage resources.
 
@@ -119,7 +119,7 @@ provider "aws" {
 }
 ```
 
-You can opt to use a region closer to you. As I'm in Australia I'm opting to use the australian region. [See here](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/) to find out what other regions AWS have available and pick the one closest to you.
+You can select a region closer to you. As I'm in Australia I'm opting to use the Australian region. [See here](https://aws.amazon.com/about-aws/global-infrastructure/regions_az/) to find out what other regions AWS have available and pick the one closest to you.
 
 Next you need to create two things in the AWS Management Console:
 1. Create a [new User](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html) with administrator permission
@@ -133,16 +133,17 @@ Take the access key and corresponding secret key and add them to your provider k
 
 Now try running `terraform plan` once more. Your output should look something like this:
 
-![output from the terraform plan command](/assets/getting-started-with-aws-tf-01/example-plan.png)
+![output from the Terraform plan command](/assets/getting-started-with-aws-tf-01/example-plan.png)
 
-Now try running [terraform apply](https://developer.hashicorp.com/terraform/cli/commands/apply) to deploy this EC2 resource to AWS.
+Now run [terraform apply](https://developer.hashicorp.com/terraform/cli/commands/apply) to deploy this EC2 resource to AWS.
 
 ## Step 3 - Connect to our EC2 Instance
 
-If you've made it this far it means you've successfully configured terraform with an AWS account and have deployed an EC2 instance to AWS. Nice!  
+If you've made it this far it means you've successfully configured Terraform with an AWS account and have deployed an EC2 instance to AWS. Nice!  
+
 Let's try connect to this instance.  
 
-You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run [terraform output](https://developer.hashicorp.com/terraform/cli/commands/output) to print all the outputs from the project, or just `terraform output <name>` to print just a single output.  
+You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run [terraform output](https://developer.hashicorp.com/terraform/cli/commands/output) to print all the outputs from the project.
 
 Copy the IP address and in a terminal run `ping <the-ip-address>`.
 
@@ -171,6 +172,8 @@ resource "aws_vpc_security_group_ingress_rule" "allow_from_local_device" {
 }
 ```
 
+This rule allows an incoming connection on any port using any protocol but only from the defined ip address range.  
+
 Next, apply the security group to the EC2 instance, adding the following property to the EC2 instance:
 
 ```terraform 
@@ -184,20 +187,24 @@ resource "aws_instance" "unicorn_vm" {
 }
 ```
 
-With these new resources defined, we can re-apply our changes with `terraform apply`. This will rebuild the EC2 instance, so we'll need to get the latest ip address so we can ping it.  
+With these new resources defined, we can re-apply our changes with `terraform apply`. This will rebuild the EC2 instance, so we'll need to get the latest ip address to ping it.  
+
 Once the resources have been updated and the latest IP address copied, we can now ping our EC2 instance with:  
 
 `ping <the-ip-address>`
 
-![output from successfully applying the terraform config and pinging the vm](/assets/getting-started-with-aws-tf-01/example-ping.png)
+![output from successfully applying the Terraform config and pinging the vm](/assets/getting-started-with-aws-tf-01/example-ping.png)
 
 ## Step 4 - SSH into the EC2 Instance
 
-Before we move on it's good practice when experimenting with terraform and public cloud resources to not leave those resources active otherwise you might run up a surprising bill (depending on what you're deploying). What we've created so far isn't so expensive but to get used to the habit let's quickly destroy these resources by running [terraform destroy](https://developer.hashicorp.com/terraform/cli/commands/destroy).
+Before we move on it's good practice when experimenting with Terraform and public cloud resources to not leave those resources active otherwise you might run up a surprising bill. 
+
+What we've created so far isn't so expensive but to get used to the habit let's quickly destroy these resources by running [terraform destroy](https://developer.hashicorp.com/terraform/cli/commands/destroy).
 
 ---
 
-In this step we're going to create an ssh key pair using terraform. The public key will be added to the EC2 instance as one of its known ssh public keys.  
+In this step we're going to create an ssh key pair using Terraform. The public key will be added to the EC2 instance as one of its known ssh public keys.  
+
 We'll save the private key as a local file so we can reference it when we try connect to the EC2 instance.
 
 First, add the following providers to our `main.tf`:
@@ -221,7 +228,7 @@ required_providers {
 }
 ```
 
-Above we're adding two new providers to our terraform config: 
+Above we're adding two new providers to our Terraform config: 
 * [tls](https://registry.terraform.io/providers/hashicorp/tls/latest/docs), which allows us to create TLS private keys and certificates
 * [local](https://registry.terraform.io/providers/hashicorp/local/latest/docs), which allows us to manage local resources (such as creating new files) via Terraform  
 
@@ -275,7 +282,7 @@ output "unicorn_vm_public_dns_name" {
 }
 ```
 
-> Note: As the name suggests, the tls private key should be treated like any other credentials and not be committed to version control. It's simple to just git ignore the `key.pem` file however when creating the private key in terraform [the private key is stored unencrypted in the terraform state file](https://registry.terraform.io/providers/hashicorp/tls/latest/docs/resources/private_key) so don't use this approach for production workloads.
+> Note: As the name suggests, the tls private key should be treated like any other credentials and not be committed to version control. It should also be worth noting that when creating a private key in Terraform [the key is store unencrypted in the Terraform state backup file](http://localhost:4000/aws/terraform/infratructure/iac/2024/05/17/get-started-with-aws-tf-01.html). With this in mind, for this exercise I would suggest ignoring both `key.pem` and `terraform.tfstate.backup` from your version control. For production workloads, the key pair can be generated outside of Terraform, and only the public key shared.
 
 Now run `terraform apply`, copy the dns name output value and then in a console run:  
 `ssh ec2-user@<EC2-DNS-NAME> -i 'key.pem'`. 
@@ -284,13 +291,15 @@ Now run `terraform apply`, copy the dns name output value and then in a console 
 And voila! You've successfully:
  * Deployed a virtual machine instance to a public cloud environment
  * Confiured network security rules on the instance to accept incoming connections from only your device
- * Configured an ssh key pair for the instance and ssh'd into the instance 
- * Done it all using Terraform as our IaC tool so these steps can be easily repeated with just a single command!
+ * Configured an ssh key pair for the instance and ssh'd onto the instance 
+ * Done it all in Terraform so these steps can be easily repeated with just a single command!
 
 Now again run `terraform destroy` so you don't wake up in a month's time with a shocking bill from AWS!
 
-In the next post we will update our EC2 instance to build and run a web server from ECR.
+In the next post we will update our EC2 instance to build and run a web server that can be accessed from any web browser.
 
 ## Bonus Step!
 
-In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance, however, in most cases we don't want our rules to be this lose (remember the [principle of least privilege](https://www.cyberark.com/what-is/least-privilege/)). How might you change your security group rule to only allow ssh connections to the instance?
+In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance.
+
+However, in most cases we don't want our rules to be this lose (remember the [principle of least privilege](https://www.cyberark.com/what-is/least-privilege/)). How might you change your security group rule to only allow ssh connections to the instance?
