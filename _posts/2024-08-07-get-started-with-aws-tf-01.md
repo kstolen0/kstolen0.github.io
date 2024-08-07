@@ -8,7 +8,12 @@ description: In this multi-part blog series we will learn how to create a modern
 
 # Introduction
 
-In this series of blog posts, we will build an enterprise scale web infrastructure; Starting small with a simple virtual machine image, and iterating as our needs develop until eventually we will have a highly available, secure, and resilient web infrastructure capable of meeting the needs of tens of customers! All of this will be managed with the popular Infrastructure As Code tool, Terraform.  
+In this series of blog posts, we will build an enterprise scale web infrastructure.
+
+Starting small with a simple virtual machine image, iterating as our needs develop until eventually we will have a highly available, secure, and resilient web infrastructure capable of meeting the needs of tens of customers! 
+
+All of this will be managed with the popular Infrastructure As Code tool, Terraform.  
+
 In this first post, we will:
  1. Configure Terraform with a pre-existing AWS account
  2. Deploy an EC2 instance to AWS
