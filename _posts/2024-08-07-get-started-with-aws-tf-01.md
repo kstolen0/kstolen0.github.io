@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Getting Started with AWS and Terraform: 01 - Creating an EC2 Intance"
+title: "Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance"
 date: 2024-08-07 16:00:00 +0800
 categories: aws Terraform infratructure IaC
 description: In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this first post we will create an EC2 instance to host our web service in AWS using Terraform
