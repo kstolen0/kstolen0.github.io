@@ -303,6 +303,8 @@ Now again run `terraform destroy` so you don't wake up in a month's time with a 
 
 In the next post we will update our EC2 instance to build and run a web server that can be accessed from any web browser.
 
+[See here](https://github.com/kstolen0/getting-started-with-aws-tf/tree/post-1) for the final code output from this post.
+
 ## Bonus Step!
 
 In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance.
