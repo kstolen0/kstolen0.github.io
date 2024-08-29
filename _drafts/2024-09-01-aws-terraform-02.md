@@ -33,9 +33,9 @@ AWS ECR is a service for hosting container image repositories which can be used 
 
 As we may be applying and destroying our environment multiple times, it might be simpler to create this repository in another Terraform project. 
 
-Create a new directory alongside `infra` called `ecr`. Copy both the `main.tf` and `aws-provider.tf` files from `infra` into `ecr`. 
+Create a new directory alongside `infra` called `ecr`.  
 
-Delete all the providers except for `aws`. Then run `terrafom init` within the `ecr` directory.
+Add a `main.tf` and `aws-provider.tf` as shown in [this gist](https://gist.github.com/kstolen0/e02a97e7c684c04743634999bb68b734), replacing the aws provider keys and region with your own then run `terraform init`.
 
 Create a new file called `ecr.tf` within the `ecr` directory and add the following:
 
@@ -127,7 +127,11 @@ resource "aws_vpc_security_group_egress_rule" "allow_outgoing_https" {
 }
 ```
 
-This [security group egress rule](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) allows our EC2 instance to make https requests to ECR.
+This [security group egress rule](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule) allows our EC2 instance to make https requests over the internet. ECR operates over HTTPS which is why declare TCP and ports 443.  
+
+You can validate that this changed worked by sshing into you EC2 instance and connecting to a website over https, e.g. `curl https://www.google.com`.  
+
+> Note: We're allowing egress over HTTPS to any node on the internet when we only need to connect to ECR. As we learned in the previous blog post this violates [the principle of least privilege](https://www.cyberark.com/what-is/least-privilege/). There is an alternative to this, which is to create a [VPC Endpoint](https://docs.aws.amazon.com/whitepapers/latest/aws-privatelink/what-are-vpc-endpoints.html) for connecting to the ECR Service and allowing egress to that endpoint but that is beyond the scope of this blog post.
 
 Now that we can connect to ECR, we need to provide access for our EC2 instance to run commands against ECR.
 
@@ -171,7 +175,7 @@ data "aws_iam_policy_document" "ec2_container_registry_read_only" {
 
 What we have done is defined an [aws_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) and applied a couple of [aws_iam_policy_documents](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) which:
 
-1. Define which services can assume this role (`ec2_assume_role_policy`). In this case only EC2 services can assume the role
+1. Define which services can assume this role (`ec2_assume_role_policy`). In this case only the EC2 service can assume the role
 2. Define the actions a service with role can perform (`ec2_container_registry_read_only`). 
 
 Our EC2 service requires three actions:
@@ -219,13 +223,7 @@ aws ecr get-login-password --region [region] | docker login --username AWS --pas
 docker run -p 80:8080 [ecr repository url]:latest
 ```
 
-Now add the following permissions for the script:
-
-`chmod 755 init-unicorn-api.sh`
-
-This give the file owner read, write, and execute permissions and everyone else read and execute permissions.
-
-Now add the script to the EC2 instance user data property:
+Add the script to the EC2 instance user data property:
 
 ```terraform
 #! /infra/unicorn-api.tf
