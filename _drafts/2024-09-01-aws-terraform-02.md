@@ -65,6 +65,20 @@ When set to `MUTABLE`, tags can be reused, allowing clients to pull the latest i
 
 When set to `IMMUTABLE` tags are fixed to specific images which prevents automatic updates but provides clients with greater stability and control as the image wont change unless the tag itself is updated.
 
+There are many risks associated with tag mutability.  
+
+* An attacker could replace a trusted image with a malicious one
+* An image could change during a deployment pipeline, tests could run against one image but the deployed image could be different. This is also known as a Time-of-Check to Time-of-Use ([TOCTOU](https://sysdig.com/blog/toctou-tag-mutability/)) issue
+* Additionally, there can be ambiguity with which image version is in production, which can make debugging issues tricky
+
+Tag immutability helps to mitigate these issues:  
+
+* Once a tag has been associated to an image, it will always refer to the same image
+* Deployed image versions can be more easily traced by referencing their tags
+* Deployments are more stable. The image tag used for tests in pre-production reference the same image being deployed to production
+
+For the purposes of this exercise, we will set tag mutability to `MUTABLE` if only so we won't need to update multiple scripts each time we want to change our web server. In general though, it is recommended to use immutable tags for a more reliable, and secure service.  
+
 The `scan_on_push` property controls whether images should be scanned for vulnerabilities upon being pushed to the repository. As it's free to enable, we might as well do so in case it finds any [CVEs](https://cve.mitre.org/).
 
 The `name` property should be self-evident.
