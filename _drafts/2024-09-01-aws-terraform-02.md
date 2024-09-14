@@ -279,6 +279,10 @@ Copy the EC2 public domain name output into a browser (you may need to prepend `
 
 ![a really really really cool website](/assets/getting-started-with-aws-tf-02/hello-world.png)
 
-In our next post, we'll do some cleanup of our current infrastructure and define our own VPC and subnet instead of using the default resources.
+Great! We've deployed a `Hello World!` web site to AWS! 
+
+Our domain name kinda sucks though, not to mention it will change every time we deploy changes, which isn't ideal for keeping people coming back to our website.
+
+In the next post we'll look at how to configure a domain name for our web site so we no longer have to rely on our EC2 domain name.
 
 [See here](https://github.com/kstolen0/getting-started-with-aws-tf/tree/post-2) to get the final code output from this post.
