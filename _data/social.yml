@@ -7,3 +7,6 @@
 - title: LinkedIn
   url: https://www.linkedin.com/in/kstolen
   icon: fab fa-linkedin
+- title: RSS
+  url: /feed.xml
+  icon: fas fa-rss
