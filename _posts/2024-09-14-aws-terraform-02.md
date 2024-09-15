@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container"
-date: 2024-08-21 16:00:00 +0800
+date: 2024-09-14 16:00:00 +0800
 categories: aws Terraform infratructure IaC ECR Docker
 description: In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this post, we will deploy a Dockerized web service to ECR for our EC2 instance to host
 ---
