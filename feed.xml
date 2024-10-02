@@ -1,0 +1,1504 @@
+<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom" ><generator uri="https://jekyllrb.com/" version="3.9.2">Jekyll</generator><link href="https://kristianstolen.com/feed.xml" rel="self" type="application/atom+xml" /><link href="https://kristianstolen.com/" rel="alternate" type="text/html" /><updated>2024-10-02T13:14:27+00:00</updated><id>https://kristianstolen.com/feed.xml</id><title type="html">Stolen Ideas</title><subtitle>A simple blog site for documenting and sharing things  I've learned about software development.</subtitle><entry><title type="html">Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container</title><link href="https://kristianstolen.com/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html" rel="alternate" type="text/html" title="Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container" /><published>2024-09-14T08:00:00+00:00</published><updated>2024-09-14T08:00:00+00:00</updated><id>https://kristianstolen.com/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02</id><content type="html" xml:base="https://kristianstolen.com/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">&lt;p&gt;Hello again! Welcome back to our multi-part blog series on getting started with AWS and Terraform.&lt;/p&gt;
+
+&lt;p&gt;In part two of this series, we’ll take our humble EC2 instance, deploy a web server image to it, and make it reachable from anywhere across the internet.&lt;/p&gt;
+
+&lt;p&gt;At the end of this post you should be able to:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Configure an Elastic Container Repository (ECR)&lt;/li&gt;
+  &lt;li&gt;Deploy a Docker Image to ECR&lt;/li&gt;
+  &lt;li&gt;Pull and run Docker Images from ECR onto an EC2 instance&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h2&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Completed the steps from &lt;a href=&quot;/_posts/2024-08-07-get-started-with-aws-tf-01.md&quot;&gt;part 1&lt;/a&gt;
+    &lt;ul&gt;
+      &lt;li&gt;The steps in this post follow directly from where we left off in the last post&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Installed &lt;a href=&quot;https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html&quot;&gt;awscli&lt;/a&gt;
+    &lt;ul&gt;
+      &lt;li&gt;We’ll be using the awscli locally to provide credentials to Docker to interact with AWS ECR&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Installed &lt;a href=&quot;https://www.docker.com/products/docker-desktop/&quot;&gt;Docker Desktop&lt;/a&gt; (or at least the &lt;a href=&quot;https://docs.docker.com/engine/install/&quot;&gt;Docker Engine&lt;/a&gt;)
+    &lt;ul&gt;
+      &lt;li&gt;We’ll be using &lt;a href=&quot;https://www.docker.com/&quot;&gt;Docker&lt;/a&gt; to build a simple node application into a Docker image and push the image to AWS ECR&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-1---create-an-ecr-repository&quot;&gt;Step 1 - Create an ECR Repository&lt;/h2&gt;
+
+&lt;p&gt;In this step we’ll define our &lt;a href=&quot;https://aws.amazon.com/ecr/&quot;&gt;ECR&lt;/a&gt; repository which will store our web server container images.&lt;/p&gt;
+
+&lt;p&gt;AWS ECR is a service for hosting container image repositories which can be used by services on the internet to pull and run container images.&lt;/p&gt;
+
+&lt;p&gt;As we may be applying and destroying our environment multiple times, it might be simpler to create this repository in another Terraform project.&lt;/p&gt;
+
+&lt;p&gt;Create a new directory alongside &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt; called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ecr&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Add a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.tf&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;aws-provider.tf&lt;/code&gt; as shown in &lt;a href=&quot;https://gist.github.com/kstolen0/e02a97e7c684c04743634999bb68b734&quot;&gt;this gist&lt;/a&gt;, replacing the aws provider keys and region with your own then run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform init&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Create a new file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ecr.tf&lt;/code&gt; within the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ecr&lt;/code&gt; directory and add the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /ecr/ecr.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_ecr_repository&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api_ecr&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;                 &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn-api&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;image_tag_mutability&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;MUTABLE&quot;&lt;/span&gt;
+  
+  &lt;span class=&quot;nx&quot;&gt;image_scanning_configuration&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;scan_on_push&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;output&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api_ecr_uri&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;The uri of the unicorn api ecr repository&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt;       &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_ecr_repository&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_ecr&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;repository_url&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Above we have defined a new &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ecr_repository&quot;&gt;aws_ecr_repository&lt;/a&gt; resource and an output value of the repo uri which will be used to push and pull our container image.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;image_tag_mutability&lt;/code&gt; property controls whether tags can be reused.&lt;/p&gt;
+
+&lt;p&gt;When set to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MUTABLE&lt;/code&gt;, tags can be reused, allowing clients to pull the latest image automatically (e.g. via the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;latest&lt;/code&gt; tag).&lt;/p&gt;
+
+&lt;p&gt;When set to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;IMMUTABLE&lt;/code&gt; tags are fixed to specific images which prevents automatic updates but provides clients with greater stability and control as the image wont change unless the tag itself is updated.&lt;/p&gt;
+
+&lt;p&gt;There are many risks associated with tag mutability.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;An attacker could replace a trusted image with a malicious one&lt;/li&gt;
+  &lt;li&gt;An image could change during a deployment pipeline, tests could run against one image but the deployed image could be different. This is also known as a Time-of-Check to Time-of-Use (&lt;a href=&quot;https://sysdig.com/blog/toctou-tag-mutability/&quot;&gt;TOCTOU&lt;/a&gt;) issue&lt;/li&gt;
+  &lt;li&gt;Additionally, there can be ambiguity with which image version is in production, which can make debugging issues tricky&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Tag immutability helps to mitigate these issues:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Once a tag has been associated to an image, it will always refer to the same image&lt;/li&gt;
+  &lt;li&gt;Deployed image versions can be more easily traced by referencing their tags&lt;/li&gt;
+  &lt;li&gt;Deployments are more stable. The image tag used for tests in pre-production reference the same image being deployed to production&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;For the purposes of this exercise, we will set tag mutability to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;MUTABLE&lt;/code&gt; if only so we won’t need to update multiple scripts each time we want to change our web server. In general though, it is recommended to use immutable tags for a more reliable, and secure service.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;scan_on_push&lt;/code&gt; property controls whether images should be scanned for vulnerabilities upon being pushed to the repository. As it’s free to enable, we might as well do so in case it finds any &lt;a href=&quot;https://cve.mitre.org/&quot;&gt;CVEs&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;The &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;name&lt;/code&gt; property should be self-evident.&lt;/p&gt;
+
+&lt;p&gt;Let’s run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform apply&lt;/code&gt; to create this repository, and make note of the repository uri output.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---building-our-web-server-image-and-pushing-it-to-ecr&quot;&gt;Step 2 - Building our web server image and pushing it to ECR&lt;/h2&gt;
+
+&lt;p&gt;Now that we’ve defined an ECR repo, we need a container image to host within the repo. This image could be whatever we want it to be, but in our case, let’s make it a simple node web api.&lt;/p&gt;
+
+&lt;p&gt;Here’s one I prepared earlier! Clone &lt;a href=&quot;https://github.com/kstolen0/sample-node-project&quot;&gt;this repo&lt;/a&gt; and then navigate to the directory.&lt;/p&gt;
+
+&lt;p&gt;Create a new bash script named &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;build-and-push.sh&lt;/code&gt; and add the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+
+aws &lt;span class=&quot;nt&quot;&gt;--profile&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;your-aws-cli-profile] ecr get-login-password &lt;span class=&quot;nt&quot;&gt;--region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;region] | &lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;docker login &lt;span class=&quot;nt&quot;&gt;--username&lt;/span&gt; AWS &lt;span class=&quot;nt&quot;&gt;--password-stdin&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;ecr-uri]
+&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;docker build &lt;span class=&quot;nt&quot;&gt;-t&lt;/span&gt; unicorn-api &lt;span class=&quot;nb&quot;&gt;.&lt;/span&gt;
+&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;docker tag unicorn-api:latest &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;ecr-uri]:latest
+&lt;span class=&quot;nb&quot;&gt;sudo &lt;/span&gt;docker push &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;ecr-uri]:latest
+aws &lt;span class=&quot;nt&quot;&gt;--profile&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;your-aws-cli-profile] ecr list-images &lt;span class=&quot;nt&quot;&gt;--repository-name&lt;/span&gt; unicorn-api
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+&lt;p&gt;We’ll also need to enable read/write/execute permissions on the script in order to run it.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;chmod 700 build-and-push.sh&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Now run the script and if all went well you should see the following output:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/getting-started-with-aws-tf-02/example-push-ecr-output.png&quot; alt=&quot;console output from pushing an image container to ecr&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---pull-the-ecr-image-onto-ec2-instance-and-run-it&quot;&gt;Step 3 - Pull the ECR image onto EC2 instance and run it&lt;/h2&gt;
+
+&lt;p&gt;By now we should have an EC2 instance running in AWS and a container image hosted on ECR. Now we just need to run the image on our EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;In order to achieve this we’ll need to:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Add a security egress rule to allow EC2 to connect to ECR&lt;/li&gt;
+  &lt;li&gt;Define a role to allow read access to ECR and assign it to our EC2 instance&lt;/li&gt;
+  &lt;li&gt;write another custom script to run on our instance which will pull the docker image and run it in its own Docker environment&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Lets define our security group rule first.&lt;/p&gt;
+
+&lt;p&gt;Open the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;unicorn-api.tf&lt;/code&gt; file and add the following egress rule:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_vpc_security_group_egress_rule&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow_outgoing_https&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  
+  &lt;span class=&quot;nx&quot;&gt;security_group_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;id&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow egress via port 443&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;cidr_ipv4&lt;/span&gt;   &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;0.0.0.0/0&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;ip_protocol&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;tcp&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;from_port&lt;/span&gt;   &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;443&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;to_port&lt;/span&gt;     &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;443&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/vpc_security_group_egress_rule&quot;&gt;security group egress rule&lt;/a&gt; allows our EC2 instance to make https requests over the internet. ECR operates over HTTPS which is why declare TCP and ports 443.&lt;/p&gt;
+
+&lt;p&gt;You can validate that this changed worked by sshing into you EC2 instance and connecting to a website over https, e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;curl https://www.google.com&lt;/code&gt;.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Note: We’re allowing egress over HTTPS to any node on the internet when we only need to connect to ECR. As we learned in the previous blog post this violates &lt;a href=&quot;https://www.cyberark.com/what-is/least-privilege/&quot;&gt;the principle of least privilege&lt;/a&gt;. There is an alternative to this, which is to create a &lt;a href=&quot;https://docs.aws.amazon.com/whitepapers/latest/aws-privatelink/what-are-vpc-endpoints.html&quot;&gt;VPC Endpoint&lt;/a&gt; for connecting to the ECR Service and allowing egress to that endpoint but that is beyond the scope of this blog post.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Now that we can connect to ECR, we need to provide access for our EC2 instance to run commands against ECR.&lt;/p&gt;
+
+&lt;p&gt;In your &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt; directory create a new file &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;iam.tf&lt;/code&gt; and add the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/iam.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_iam_role&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ec2_ecr_readonly_role&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;               &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ec2-ecr-role&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;assume_role_policy&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;aws_iam_policy_document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ec2_assume_role_policy&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;json&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;inline_policy&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;   &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ecr-read-policy&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;policy&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;aws_iam_policy_document&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ec2_container_registry_read_only&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;json&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_iam_policy_document&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ec2_assume_role_policy&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;statement&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;actions&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;sts:AssumeRole&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+
+    &lt;span class=&quot;nx&quot;&gt;principals&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;type&lt;/span&gt;        &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Service&quot;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;identifiers&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;ec2.amazonaws.com&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_iam_policy_document&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ec2_container_registry_read_only&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;statement&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;actions&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;
+      &lt;span class=&quot;s2&quot;&gt;&quot;ecr:GetAuthorizationToken&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;s2&quot;&gt;&quot;ecr:BatchGetImage&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+      &lt;span class=&quot;s2&quot;&gt;&quot;ecr:GetDownloadUrlForLayer&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;,&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;resources&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;*&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+  &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;What we have done is defined an &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role&quot;&gt;aws_iam_role&lt;/a&gt; and applied a couple of &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document&quot;&gt;aws_iam_policy_documents&lt;/a&gt; which:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Define which services can assume this role (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ec2_assume_role_policy&lt;/code&gt;). In this case only the EC2 service can assume the role&lt;/li&gt;
+  &lt;li&gt;Define the actions a service with role can perform (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ec2_container_registry_read_only&lt;/code&gt;).&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Our EC2 service requires three actions:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;one to allow the principal to authenticate with ECR&lt;/li&gt;
+  &lt;li&gt;one to query the manifest of a container image pulled from ECR&lt;/li&gt;
+  &lt;li&gt;one to query the download URLs of the the container image layers&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We’ve defined our role and appropriate policies for the role, now we need to apply it to our EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;Open &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;unicorn-api.tf&lt;/code&gt; and add the following resource:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_iam_instance_profile&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api_iam_profile&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn-api-iam-profile&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;role&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_iam_role&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ec2_readonly_role&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Now add the &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_instance_profile&quot;&gt;iam instance profile&lt;/a&gt; to the aws instance.&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_instance&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;iam_instance_profile&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_iam_instance_profile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_iam_profile&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt;
+ 
+  &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Great! Now that we’ve defined the IAM role and applied it to our EC2 resource, we can define a script for our instance to run on start up which will pull the ECR image and run it in docker.&lt;/p&gt;
+
+&lt;p&gt;Create a new file in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt; directory, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;init-unicorn-api.sh&lt;/code&gt;&lt;/p&gt;
+
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c&quot;&gt;#!/bin/bash&lt;/span&gt;
+
+aws ecr get-login-password &lt;span class=&quot;nt&quot;&gt;--region&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;region] | docker login &lt;span class=&quot;nt&quot;&gt;--username&lt;/span&gt; AWS &lt;span class=&quot;nt&quot;&gt;--password-stdin&lt;/span&gt; &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;ecr repository url]
+docker run &lt;span class=&quot;nt&quot;&gt;-p&lt;/span&gt; 80:8080 &lt;span class=&quot;o&quot;&gt;[&lt;/span&gt;ecr repository url]:latest
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Add the script to the EC2 instance user data property:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;#! /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_iam_instance_profile&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api_iam_profile&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+  
+  &lt;span class=&quot;nx&quot;&gt;user_data&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;file&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;module}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/init-unicorn-api.sh&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+
+  &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With all that setup, we should now have an EC2 instance running a simple web server listening on port 80. There’s just one final step to allow this service to be reachable from any device on the internet.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---allow-any-device-on-the-internet-to-connect-to-our-web-server&quot;&gt;Step 4 - Allow any device on the internet to connect to our web server&lt;/h2&gt;
+
+&lt;p&gt;So far we’ve created a web service Docker image, pushed the image to ECR, and pulled &amp;amp; run the image on our EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;Now we need to revisit our security group rules and update our ingress rule to allow incoming connections from any IP over port 80. Remove your existing ingress rule and replace it with the following.&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_vpc_security_group_ingress_rule&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow_incoming_http&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;security_group_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;id&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt;       &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow ingress via port 80&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;cidr_ipv4&lt;/span&gt;         &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;0.0.0.0/0&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;ip_protocol&lt;/span&gt;       &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;tcp&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;from_port&lt;/span&gt;         &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;to_port&lt;/span&gt;           &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;80&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With all of that we can run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform apply&lt;/code&gt; to apply our changes.&lt;/p&gt;
+
+&lt;p&gt;Copy the EC2 public domain name output into a browser (you may need to prepend &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;http://&lt;/code&gt; to the address as your browser might assume to use https) and see your awesome website!&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/getting-started-with-aws-tf-02/hello-world.png&quot; alt=&quot;a really really really cool website&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Great! We’ve deployed a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Hello World!&lt;/code&gt; web site to AWS!&lt;/p&gt;
+
+&lt;p&gt;Our domain name kinda sucks though, not to mention it will change every time we deploy changes, which isn’t ideal for keeping people coming back to our website.&lt;/p&gt;
+
+&lt;p&gt;In the next post we’ll look at how to configure a domain name for our web site so we no longer have to rely on our EC2 domain name.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/kstolen0/getting-started-with-aws-tf/tree/post-2&quot;&gt;See here&lt;/a&gt; to get the final code output from this post.&lt;/p&gt;</content><author><name></name></author><category term="aws" /><category term="Terraform" /><category term="infratructure" /><category term="IaC" /><category term="ECR" /><category term="Docker" /><summary type="html">Hello again! Welcome back to our multi-part blog series on getting started with AWS and Terraform.</summary></entry><entry><title type="html">Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance</title><link href="https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html" rel="alternate" type="text/html" title="Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance" /><published>2024-08-07T08:00:00+00:00</published><updated>2024-08-07T08:00:00+00:00</updated><id>https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01</id><content type="html" xml:base="https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">&lt;h1 id=&quot;introduction&quot;&gt;Introduction&lt;/h1&gt;
+
+&lt;p&gt;In this series of blog posts, we will build an enterprise scale web infrastructure.&lt;/p&gt;
+
+&lt;p&gt;Starting small with a simple virtual machine image, iterating as our needs develop until eventually we will have a highly available, secure, and resilient web infrastructure capable of meeting the needs of tens of customers!&lt;/p&gt;
+
+&lt;p&gt;All of this will be managed with the popular Infrastructure As Code tool, Terraform.&lt;/p&gt;
+
+&lt;p&gt;In this first post, we will:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Configure Terraform with a pre-existing AWS account&lt;/li&gt;
+  &lt;li&gt;Deploy an EC2 instance to AWS&lt;/li&gt;
+  &lt;li&gt;Allow incoming connections to the EC2 instance from our local device&lt;/li&gt;
+  &lt;li&gt;SSH into our EC2 instance using a ssh key pair&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;prerequisites&quot;&gt;Prerequisites&lt;/h2&gt;
+
+&lt;p&gt;It would be helpful for you to have some familiarity with the following concepts/tools:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;What &lt;a href=&quot;https://aws.amazon.com/what-is/iac/&quot;&gt;Infrastructure as Code&lt;/a&gt; (IaC) is and some IaC tools (e.g. Terraform, Pulumi, CloudFormation)&lt;/li&gt;
+  &lt;li&gt;What a &lt;a href=&quot;https://azure.microsoft.com/en-au/resources/cloud-computing-dictionary/what-is-a-cloud-provider&quot;&gt;cloud service provider&lt;/a&gt; is (e.g. AWS, Google Cloud, Azure)&lt;/li&gt;
+  &lt;li&gt;Familiarity with using the terminal&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Before we start building, you’ll want to have setup a couple things:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Have an &lt;a href=&quot;https://aws.amazon.com/free/&quot;&gt;AWS Account&lt;/a&gt; setup&lt;/li&gt;
+  &lt;li&gt;Installed &lt;a href=&quot;https://developer.hashicorp.com/terraform/install?product_intent=terraform&quot;&gt;Terraform cli&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;An IDE or text editor of your preference (I use Neovim, btw)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;step-0---create-a-directory-for-your-project&quot;&gt;Step 0 - Create a directory for your project&lt;/h2&gt;
+
+&lt;p&gt;As we’ll be building our infrastructure using Terraform, we’ll need somewhere to write this code.
+Let’s create a directory called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;my-unicorn-project&lt;/code&gt; and inside that directory create another directory called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-1---define-our-terraform-provider&quot;&gt;Step 1 - Define our Terraform provider&lt;/h2&gt;
+
+&lt;p&gt;Now we will create our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.tf&lt;/code&gt; file inside our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt; directory where we will define our cloud provider.&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/main.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;terraform&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;required_version&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt;= 1.2.0&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;required_providers&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;aws&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;nx&quot;&gt;source&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;hashicorp/aws&quot;&lt;/span&gt;
+            &lt;span class=&quot;nx&quot;&gt;version&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&amp;gt;= 5.41.0&quot;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Open a terminal in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;infra&lt;/code&gt; directory and run &lt;a href=&quot;https://developer.hashicorp.com/terraform/cli/commands/init&quot;&gt;terraform init&lt;/a&gt;. Terraform will download the required provider modules so they can be used to configure our services.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-2---create-an-aws-ec2-instance&quot;&gt;Step 2 - Create an AWS EC2 instance&lt;/h2&gt;
+
+&lt;p&gt;Now we have successfully initialized Terraform with the AWS provider we can define AWS resources in our code. In this step we will create three things:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;An AWS &lt;a href=&quot;https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html&quot;&gt;EC2 instance&lt;/a&gt; resource&lt;/li&gt;
+  &lt;li&gt;An AWS &lt;a href=&quot;https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html&quot;&gt;Amazon Machine Image&lt;/a&gt; (ami) data reference for EC2 to run&lt;/li&gt;
+  &lt;li&gt;A &lt;a href=&quot;https://developer.hashicorp.com/terraform/language/values/outputs&quot;&gt;Terraform output&lt;/a&gt; to return the public ip address for the created EC2 instance so we can easily connect to it&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Create a new file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;unicorn-api.tf&lt;/code&gt;.&lt;br /&gt;
+Inside the file, add:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;data&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_ami&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;amazon_x86_image&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;most_recent&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;kc&quot;&gt;true&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;owners&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;amazon&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;name_regex&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;^al2023-ami-ecs.*&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;nx&quot;&gt;filter&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;architecure&quot;&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;values&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;&quot;x86_64&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_instance&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_vm&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;ami&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;k&quot;&gt;data&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;aws_ami&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;amazon_x86_image&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;id&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;instance_type&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;t2.micro&quot;&lt;/span&gt;
+
+    &lt;span class=&quot;nx&quot;&gt;tags&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;nx&quot;&gt;Name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Unicorn&quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;output&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_vm_public_ip&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Public IP address of the unicorn vm&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_instance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_vm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;public_ip&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;In this file We’ve defined an AWS EC2 &lt;a href=&quot;https://developer.hashicorp.com/terraform/language/resources&quot;&gt;resource&lt;/a&gt; and attached an AWS AMI &lt;a href=&quot;https://developer.hashicorp.com/terraform/language/data-sources&quot;&gt;data source&lt;/a&gt; with an x86 architecture and has docker pre-installed on the image to install onto the EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;We’ve also defined an &lt;a href=&quot;https://developer.hashicorp.com/terraform/language/values/outputs&quot;&gt;output&lt;/a&gt; which returns the EC2 instance’s public ip address. We’ll need this later.&lt;/p&gt;
+
+&lt;p&gt;Now when you open the terminal and run &lt;a href=&quot;https://developer.hashicorp.com/terraform/cli/commands/plan&quot;&gt;terraform plan&lt;/a&gt; to review the proposed changes prior to applying them.&lt;/p&gt;
+
+&lt;p&gt;It fails! But why?&lt;/p&gt;
+
+&lt;p&gt;Even though we’ve created an AWS account, and downloaded Terraform, and the AWS provider for Terraform to use, we still need Terraform to authenticate with AWS in order to create these resources.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-21---create-an-aws-api-key-for-terraform&quot;&gt;Step 2.1 - Create an AWS API Key for Terraform&lt;/h2&gt;
+
+&lt;p&gt;In order for Terraform to manage resources in AWS it needs access to your AWS account. We can accomplish this by creating credentials specifically for this project and configuring Terraform to use those credentials to create and manage resources.&lt;/p&gt;
+
+&lt;p&gt;Create a new file called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;aws-provider-key.tf&lt;/code&gt; and add the following content:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/aws-provider-key.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;provider&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;access_key&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;secret_key&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;region&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ap-southeast-2&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;You can select a region closer to you. As I’m in Australia I’m opting to use the Australian region. &lt;a href=&quot;https://aws.amazon.com/about-aws/global-infrastructure/regions_az/&quot;&gt;See here&lt;/a&gt; to find out what other regions AWS have available and pick the one closest to you.&lt;/p&gt;
+
+&lt;p&gt;Next you need to create two things in the AWS Management Console:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Create a &lt;a href=&quot;https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html&quot;&gt;new User&lt;/a&gt; with administrator permission&lt;/li&gt;
+  &lt;li&gt;Create an &lt;a href=&quot;https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html&quot;&gt;access key&lt;/a&gt; for the user&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Note, giving users more access than they require (such as admin access) is not good practice. Users should only ever be given the mininum level of access in order to complete a task. I’ll leave it as an exercise to the reader to find out the minimum required roles should be for this user. For more information about the principle of least privilege, &lt;a href=&quot;https://www.cyberark.com/what-is/least-privilege/&quot;&gt;see here&lt;/a&gt;.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Take the access key and corresponding secret key and add them to your provider key you defined earlier.&lt;/p&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;These API keys should be treated like credentials. Do not commit this file to source control. Otherwise the key could be discovered and you’ll need to replace them.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Now try running &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform plan&lt;/code&gt; once more. Your output should look something like this:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/getting-started-with-aws-tf-01/example-plan.png&quot; alt=&quot;output from the Terraform plan command&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Now run &lt;a href=&quot;https://developer.hashicorp.com/terraform/cli/commands/apply&quot;&gt;terraform apply&lt;/a&gt; to deploy this EC2 resource to AWS.&lt;/p&gt;
+
+&lt;h2 id=&quot;step-3---connect-to-our-ec2-instance&quot;&gt;Step 3 - Connect to our EC2 Instance&lt;/h2&gt;
+
+&lt;p&gt;If you’ve made it this far it means you’ve successfully configured Terraform with an AWS account and have deployed an EC2 instance to AWS. Nice!&lt;/p&gt;
+
+&lt;p&gt;Let’s try connect to this instance.&lt;/p&gt;
+
+&lt;p&gt;You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run &lt;a href=&quot;https://developer.hashicorp.com/terraform/cli/commands/output&quot;&gt;terraform output&lt;/a&gt; to print all the outputs from the project.&lt;/p&gt;
+
+&lt;p&gt;Copy the IP address and in a terminal run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ping &amp;lt;the-ip-address&amp;gt;&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;No response…&lt;/p&gt;
+
+&lt;p&gt;This is because when we define the EC2 instance, a default &lt;a href=&quot;https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html&quot;&gt;security group&lt;/a&gt; is applied to it. This security group allows incoming connections on any port using any protocol but only from other AWS resources within the same security group…&lt;/p&gt;
+
+&lt;p&gt;If we want to connect to our instance, we need to make our own rules.&lt;/p&gt;
+
+&lt;p&gt;We don’t want just anyone to connect to this service so for now we’ll only allow our local device’s public ip address in the address range. You can find this easily using a site like &lt;a href=&quot;https://www.whatismyipaddress.com&quot;&gt;whatismyipaddress.com&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;Open &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;unicon-api.tf&lt;/code&gt; and add the following resources, providing your public ip for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;cidr_ipv4&lt;/code&gt; value:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_security_group&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_api_security_group&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn-api-security-group&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_vpc_security_group_ingress_rule&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow_from_local_device&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;security_group_id&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;id&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt;       &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;allow ingress on any port from any ip&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;cidr_ipv4&lt;/span&gt;         &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&amp;lt;YOUR_IP_ADDRESS_HERE&amp;gt;/32&quot;&lt;/span&gt;
+  &lt;span class=&quot;nx&quot;&gt;ip_protocol&lt;/span&gt;       &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;err&quot;&gt;-&lt;/span&gt;&lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;This rule allows an incoming connection on any port using any protocol but only from the defined ip address range.&lt;/p&gt;
+
+&lt;p&gt;Next, apply the security group to the EC2 instance, adding the following property to the EC2 instance:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# /infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_instance&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_vm&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;vpc_security_group_ids&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;[&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;aws_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_api_security_group&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;id&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;]&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;With these new resources defined, we can re-apply our changes with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform apply&lt;/code&gt;. This will rebuild the EC2 instance, so we’ll need to get the latest ip address to ping it.&lt;/p&gt;
+
+&lt;p&gt;Once the resources have been updated and the latest IP address copied, we can now ping our EC2 instance with:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ping &amp;lt;the-ip-address&amp;gt;&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/getting-started-with-aws-tf-01/example-ping.png&quot; alt=&quot;output from successfully applying the Terraform config and pinging the vm&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;step-4---ssh-into-the-ec2-instance&quot;&gt;Step 4 - SSH into the EC2 Instance&lt;/h2&gt;
+
+&lt;p&gt;Before we move on it’s good practice when experimenting with Terraform and public cloud resources to not leave those resources active otherwise you might run up a surprising bill.&lt;/p&gt;
+
+&lt;p&gt;What we’ve created so far isn’t so expensive but to get used to the habit let’s quickly destroy these resources by running &lt;a href=&quot;https://developer.hashicorp.com/terraform/cli/commands/destroy&quot;&gt;terraform destroy&lt;/a&gt;.&lt;/p&gt;
+
+&lt;hr /&gt;
+
+&lt;p&gt;In this step we’re going to create an ssh key pair using Terraform. The public key will be added to the EC2 instance as one of its known ssh public keys.&lt;/p&gt;
+
+&lt;p&gt;We’ll save the private key as a local file so we can reference it when we try connect to the EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;First, add the following providers to our &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.tf&lt;/code&gt;:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# infra/main.tf&lt;/span&gt;
+
+&lt;span class=&quot;nx&quot;&gt;required_providers&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+
+    &lt;span class=&quot;nx&quot;&gt;tls&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+          &lt;span class=&quot;nx&quot;&gt;source&lt;/span&gt;  &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;hashicorp/tls&quot;&lt;/span&gt;
+          &lt;span class=&quot;nx&quot;&gt;version&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;~&amp;gt; 4.0.4&quot;&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+    &lt;span class=&quot;kd&quot;&gt;local&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;source&lt;/span&gt;  &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;hashicorp/local&quot;&lt;/span&gt;
+      &lt;span class=&quot;nx&quot;&gt;version&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;2.4.1&quot;&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Above we’re adding two new providers to our Terraform config:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/tls/latest/docs&quot;&gt;tls&lt;/a&gt;, which allows us to create TLS private keys and certificates&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/local/latest/docs&quot;&gt;local&lt;/a&gt;, which allows us to manage local resources (such as creating new files) via Terraform&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Since we’ve added new providers, we need to run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform init&lt;/code&gt; to download their modules.&lt;/p&gt;
+
+&lt;p&gt;Create a new file named &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh_key.tf&lt;/code&gt; and add the following:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# infra/ssh_key.tf&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# create a tls key pair using rsa algorithm&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;tls_private_key&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ssh_key&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;algorithm&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;RSA&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;rsa_bits&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;4096&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# save the private key to a local file named &quot;key.pem&quot;&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;local_file&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;rsa_key&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;content&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;tls_private_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ssh_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;private_key_openssh&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;filename&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;${&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;path&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;k&quot;&gt;module}&lt;/span&gt;&lt;span class=&quot;s2&quot;&gt;/key.pem&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;file_permission&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;0600&quot;&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;c1&quot;&gt;# define an AWS key pair, providing the public key from the tls key pair defined above&lt;/span&gt;
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_key_pair&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;key_pair_for_ec2_instance&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;key_name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;ssh-key&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;public_key&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;tls_private_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;ssh_key&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;public_key_openssh&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Above we’ve just:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Created a tls private key resource&lt;/li&gt;
+  &lt;li&gt;Created a local file with the file name &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;key.pem&lt;/code&gt; and added the ssh private key to its contents&lt;/li&gt;
+  &lt;li&gt;An &lt;a href=&quot;https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/key_pair&quot;&gt;AWS key pair&lt;/a&gt; resource which will register the ssh public key to our aws EC2 instance&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;Now, add the key pair to our EC2 instance and while we’re at it, lets add the instance’s public dns name as an output for when we ssh into it:&lt;/p&gt;
+
+&lt;div class=&quot;language-terraform highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;c1&quot;&gt;# infra/unicorn-api.tf&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;resource&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;aws_instance&quot;&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;web_service_vm&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+
+    &lt;span class=&quot;c1&quot;&gt;# ...&lt;/span&gt;
+
+  &lt;span class=&quot;nx&quot;&gt;key_name&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_key_pair&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;key_pair_for_ec2_instance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;key_name&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;k&quot;&gt;output&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;unicorn_vm_public_dns_name&quot;&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;description&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;s2&quot;&gt;&quot;Public DNS name of the unicorn vm&quot;&lt;/span&gt;
+    &lt;span class=&quot;nx&quot;&gt;value&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nx&quot;&gt;aws_instance&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;unicorn_vm&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nx&quot;&gt;public_dns&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;blockquote&gt;
+  &lt;p&gt;Note: As the name suggests, the tls private key should be treated like any other credentials and not be committed to version control. It should also be worth noting that when creating a private key in Terraform &lt;a href=&quot;http://localhost:4000/aws/terraform/infratructure/iac/2024/05/17/get-started-with-aws-tf-01.html&quot;&gt;the key is store unencrypted in the Terraform state backup file&lt;/a&gt;. With this in mind, for this exercise I would suggest ignoring both &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;key.pem&lt;/code&gt; and &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform.tfstate.backup&lt;/code&gt; from your version control. For production workloads, the key pair can be generated outside of Terraform, and only the public key shared.&lt;/p&gt;
+&lt;/blockquote&gt;
+
+&lt;p&gt;Now run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform apply&lt;/code&gt;, copy the dns name output value and then in a console run:&lt;br /&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ssh ec2-user@&amp;lt;EC2-DNS-NAME&amp;gt; -i 'key.pem'&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/getting-started-with-aws-tf-01/example-ssh.png&quot; alt=&quot;the output from successfuly sshing into an AWS hosted vm&quot; /&gt;
+And voila! You’ve successfully:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;Deployed a virtual machine instance to a public cloud environment&lt;/li&gt;
+  &lt;li&gt;Confiured network security rules on the instance to accept incoming connections from only your device&lt;/li&gt;
+  &lt;li&gt;Configured an ssh key pair for the instance and ssh’d onto the instance&lt;/li&gt;
+  &lt;li&gt;Done it all in Terraform so these steps can be easily repeated with just a single command!&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Now again run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;terraform destroy&lt;/code&gt; so you don’t wake up in a month’s time with a shocking bill from AWS!&lt;/p&gt;
+
+&lt;p&gt;In the next post we will update our EC2 instance to build and run a web server that can be accessed from any web browser.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://github.com/kstolen0/getting-started-with-aws-tf/tree/post-1&quot;&gt;See here&lt;/a&gt; for the final code output from this post.&lt;/p&gt;
+
+&lt;h2 id=&quot;bonus-step&quot;&gt;Bonus Step!&lt;/h2&gt;
+
+&lt;p&gt;In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance.&lt;/p&gt;
+
+&lt;p&gt;However, in most cases we don’t want our rules to be this lose (remember the &lt;a href=&quot;https://www.cyberark.com/what-is/least-privilege/&quot;&gt;principle of least privilege&lt;/a&gt;). How might you change your security group rule to only allow ssh connections to the instance?&lt;/p&gt;</content><author><name></name></author><category term="aws" /><category term="Terraform" /><category term="infratructure" /><category term="IaC" /><summary type="html">Introduction</summary></entry><entry><title type="html">0.1 + 0.2 or I Dont Understand Floating Point Numbers</title><link href="https://kristianstolen.com/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html" rel="alternate" type="text/html" title="0.1 + 0.2 or I Dont Understand Floating Point Numbers" /><published>2024-03-17T08:00:00+00:00</published><updated>2024-03-17T08:00:00+00:00</updated><id>https://kristianstolen.com/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers</id><content type="html" xml:base="https://kristianstolen.com/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;What's 0.1 + 0.2?
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If someone were to ask me this I’d calmly respond, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.3&lt;/code&gt; and carry on with my day. But when I open a Node console or my developer console in my browser and enter &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1 + 0.2&lt;/code&gt;. What is the result?&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2024-03-08-floating-point-numbers/01-plus-02.PNG&quot; alt=&quot;0.1 plus 0.2 is in fact 0.30000000000000004 When using floating point numbers&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Once again, Javascript is up to its old tricks… But I shouldn’t give Javascript all the credit here. Javascript has simply implemented its &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Number&lt;/code&gt; type to follow a widely used double floating point number standard known as IEEE-754.&lt;/p&gt;
+
+&lt;p&gt;How many numbers are there? Quite a few… There’s 1, 2, 3, 42, and much, much more! And how many numbers are between 1 and 2?&lt;br /&gt;
+There’s 1.1, 1.01, 1.001, 1.945671456000000012314440014444000148478, we’re just scratching the surface here, but let’s say also a lot! How many bits of memory are available in my computer? Probably fewer than there are numbers. How can my computer represent so many numbers with such little space?&lt;/p&gt;
+
+&lt;h2 id=&quot;the-ieee-754-standard-for-floating-point-arithmetic&quot;&gt;The IEEE-754 Standard for Floating Point Arithmetic&lt;/h2&gt;
+
+&lt;p&gt;Computers need a way to capture all these numbers with a limited amount of space. Many systems had developed their own implementations for managing this, but this made for poor reliability and portability. The IEEE-754 floating point number standard was developed to fix this. So how does it work? Floating point formats can be of varying sizes:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;16 bit floating point (aka Half)&lt;/li&gt;
+  &lt;li&gt;32 bit floating point (aka Single)&lt;/li&gt;
+  &lt;li&gt;64 bit floating point (aka Double), etc&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;For the sake of brevity, I’ll use 16 bit floating point as an example.&lt;/p&gt;
+
+&lt;p&gt;Given 16 bits:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;1 bit for the sign &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sign&lt;/code&gt; (if the number is positive or negative)&lt;/li&gt;
+  &lt;li&gt;5 bits for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;exponent&lt;/code&gt; (This represents the biased exponent and determines where the floating decimal will be placed)&lt;/li&gt;
+  &lt;li&gt;10 bits for the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;mantissa&lt;/code&gt; (The normalized number)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2024-03-08-floating-point-numbers/16-bit-fp-allocations.PNG&quot; alt=&quot;the bit allocations in a 16 bit floating point number system&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;lets-do-the-math&quot;&gt;Lets do the math!&lt;/h2&gt;
+
+&lt;p&gt;Given the number &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;12.5&lt;/code&gt;, I can do some math to convert it into floating point binary number:&lt;/p&gt;
+
+&lt;p&gt;As the number is positive, I set &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sign&lt;/code&gt; to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sign = 0&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;To calculate the mantissa, I first continuously divide the left-hand side of the decimal by 2 until the whole number reaches 0. 
+Then I multiply the right-hand side of the decimal by 2 until the result has no remainder.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;whole number&lt;/th&gt;
+      &lt;th&gt;decimal&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;12 / 2 = 6&lt;/code&gt; - remainder 0(0)&lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.5 * 2 = 1.0&lt;/code&gt; - 1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;6 / 2 = 3&lt;/code&gt;  - remainder 0(0)&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;3 / 2 = 1.5&lt;/code&gt; - remainder 5(1)&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1 / 2 = 0.5&lt;/code&gt; - remainder 5(1)&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;result: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1100&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;result &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;This results in &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1100.1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;I then normalize the mantissa to get the exponent:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1100.1 = 1.1001*2^3&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;I get the biased exponent by adding the number of non-signed bits to the exponent value.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;3 + 15 = 18 = 10010&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The format assumes a leading &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt; in the mantissa so I can ignore it. This results in:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0 10010 1001000000&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2024-03-08-floating-point-numbers/12-point-5-16-bit-fp.PNG&quot; alt=&quot;12.5 in half floating point binary is 01001010010000000&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;so-what&quot;&gt;So What?&lt;/h2&gt;
+
+&lt;p&gt;OK, that’s cool and all but this still doesn’t explain why &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1 + 0.2 = 0.30000000000000004&lt;/code&gt;!&lt;/p&gt;
+
+&lt;p&gt;Why don’t I do this calculation again, but this time I’ll convert &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1&lt;/code&gt; into 16 bit floating point binary.&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1&lt;/code&gt; is a positive number, so &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sign&lt;/code&gt; is easy:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sign = 0&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now to get our mantissa:&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;whole number&lt;/th&gt;
+      &lt;th&gt;decimal&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0 / 2 = 0 &lt;/code&gt; - remainder 0(0)&lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1 * 2 = 0.2&lt;/code&gt; 0&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.2 * 2 = 0.4&lt;/code&gt; 0&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.4 * 2 = 0.8&lt;/code&gt; 0&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.8 * 2 = 1.6&lt;/code&gt; 1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.6 * 2 = 1.2&lt;/code&gt; 1&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt; &lt;/td&gt;
+      &lt;td&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.2 * 2 = 0.4&lt;/code&gt; 0  !!&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;result: &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;&lt;/td&gt;
+      &lt;td&gt;result &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0001100110&lt;/code&gt;&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;The calculation loops back on itself after calculating  &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.6 * 2&lt;/code&gt;!&lt;/p&gt;
+
+&lt;p&gt;Using the 10 bits of space we have available we get:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.0001100110&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;To get the exponent, I normalize the value and add the bias:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1.1*2^-4&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-4 + 15 = 11 = 01011&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;result:
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0 01011 0001100110&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;The issue here is that I haven’t captured the exact value of 0.1 in our conversion. There’s an infinite series of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0011&lt;/code&gt; that follows here.&lt;br /&gt;
+The same issue occurs when calculating &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.2&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Now I see why some numbers result in unexpected calculations. Just as &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1/3&lt;/code&gt; cannot be precisely captured in decimal notation, (there’s an infinite amount of recurring 3s), some decimal values cannot be precisely captured in floating point numbers.&lt;/p&gt;
+
+&lt;p&gt;When converting numbers too large for the bit capacity, the number may be rounded up or rounded down to the nearest bit depending on if the next bit is a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt; or &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;In the case of &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0.1 + 0.2&lt;/code&gt;, here we can see that both 64bit floating point binary numbers are rounded up to the next bit which results in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0100&lt;/code&gt; (4) at the tail end of our result.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt; 0.1&lt;/td&gt;
+      &lt;td&gt;0 01111111011 1001100110011001100110011001100110011001100110011010&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;+ 0.2&lt;/td&gt;
+      &lt;td&gt;0 01111111100 1001100110011001100110011001100110011001100110011010&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;= 0.3&lt;/td&gt;
+      &lt;td&gt;0 01111111101 0011001100110011001100110011001100110011001100110100&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;h2 id=&quot;in-conclusion&quot;&gt;In Conclusion&lt;/h2&gt;
+
+&lt;p&gt;The IEEE-754 floating point number system is a great tool for representing a large array of numbers with some small quirks that surprises developers on occasion.&lt;/p&gt;
+
+&lt;p&gt;In most scenarios, these minor rounding errors wont dramatically change the result of a calculation, (being 0.00000000000000004 off the result is not a game changer).&lt;/p&gt;
+
+&lt;p&gt;Where they do become important is when doing comparisons, e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;(x + y === 3)&lt;/code&gt; or when presenting these results to humans.&lt;/p&gt;
+
+&lt;p&gt;When working with floating point numbers it’s important to account for these scenarios and potentially limit the decimal places or parse the values as Integers.&lt;/p&gt;
+
+&lt;p&gt;A common solution for avoiding this is to only work with whole numbers (e.g. cents instead of dollars).&lt;/p&gt;
+
+&lt;p&gt;Now, the next time someone asks me &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;what is 0.1 plus 0.2?&lt;/code&gt; I will have a new opportunity to answer &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;It depends.&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;other-interesting-quirks-of-floating-point-numbers&quot;&gt;Other interesting quirks of Floating Point numbers&lt;/h2&gt;
+
+&lt;p&gt;As the sign and mantissa are distinct values, this standard can create some interesting values:&lt;br /&gt;
+(16 bit floating point binaries shown for brevity)&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Infinity&lt;/td&gt;
+      &lt;td&gt;0 11111 0000000000&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;-Infinity&lt;/td&gt;
+      &lt;td&gt;1 11111 0000000000&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;0&lt;/td&gt;
+      &lt;td&gt;0 00000 0000000000&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;-0&lt;/td&gt;
+      &lt;td&gt;1 00000 0000000000&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;NaN&lt;/td&gt;
+      &lt;td&gt;0 11111 0000000001&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;When the exponent is all &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt;s and mantissa is all &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;s this is considered &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Infinity&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;When the sign is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt; &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;Infinity&lt;/code&gt; naturally becomes &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-Infinity&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;When the exponent is all &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;s and mantissa is all &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;s the result is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;Again, when the sign is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt; we get &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-0&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;When the exponent is all &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1&lt;/code&gt;s and the mantissa is a non &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;0&lt;/code&gt; value, this is considered Not a Number (&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;NaN&lt;/code&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;further-reading--viewing&quot;&gt;Further Reading / Viewing&lt;/h2&gt;
+
+&lt;p&gt;To learn more about this topic I highly recommend these:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=RuKkePyo9zk&quot;&gt;YT - Computer Science - IEEE 754 Standard for Floating Point Binary Arithmetic&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=wPBjd-vb9eI&quot;&gt;YT - Low Byte Productions - Why 0.1 + 0.2 === 0.30000000000000004: Implementing IEEE 754 in JS&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.youtube.com/watch?v=PZRI1IfStY0&quot;&gt;YT - Computerphile - Floating Point Numbers&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://en.wikipedia.org/wiki/Double-precision_floating-point_format&quot;&gt;Wikipedia - Double-Precision Floating Point Format&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</content><author><name></name></author><category term="javascript" /><category term="math" /><category term="numbers" /><category term="ieee-754" /><category term="floating" /><category term="point" /><summary type="html">What's 0.1 + 0.2?</summary></entry><entry><title type="html">Create a NodeJS project with Typescript &amp;amp; Jest</title><link href="https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html" rel="alternate" type="text/html" title="Create a NodeJS project with Typescript &amp;amp; Jest" /><published>2023-06-24T16:00:00+00:00</published><updated>2023-06-24T16:00:00+00:00</updated><id>https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation</id><content type="html" xml:base="https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html">&lt;p&gt;Let’s just get the boring stuff out the way.&lt;/p&gt;
+
+&lt;p&gt;Open a terminal and navigate to your project directory.&lt;/p&gt;
+
+&lt;p&gt;Run the following two commands:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;npm init -y
+npm i -D typescript jest @types/jest ts-jest
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Create a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tsconfig.json&lt;/code&gt; file then add the following json config:&lt;/p&gt;
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;{
+    &quot;compilerOptions&quot;: {
+        &quot;module&quot;: &quot;CommonJS&quot;,
+        &quot;target&quot;: &quot;ES2022&quot;,
+        &quot;outDir&quot;: &quot;build&quot;,
+        &quot;esModuleInterop&quot;: true,
+        &quot;forceConsistentCasingInFileNames&quot;: true,
+        &quot;strict&quot;: true
+    },
+    &quot;include&quot;: [&quot;src/**/*.ts&quot;],
+    &quot;exclude&quot;: [&quot;**/*.test.ts&quot;]
+}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Open the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package.json&lt;/code&gt; file.&lt;/p&gt;
+
+&lt;p&gt;Replace the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; value to &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&quot;main&quot;: &quot;build/main.js&quot;,&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Replace &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;scripts&lt;/code&gt; with:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&quot;scripts&quot;: {
+    &quot;build&quot;: &quot;tsc&quot;,
+    &quot;test&quot;: &quot;jest&quot;,
+    &quot;start&quot;: &quot;node .&quot;
+  },
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Below &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;scripts&lt;/code&gt; add your jest config:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&quot;jest&quot;: {
+    &quot;preset&quot;: &quot;ts-jest&quot;
+  },
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;To run some typescript code, create a folder called &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;src&lt;/code&gt; and add a file, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.ts&lt;/code&gt;.&lt;/p&gt;
+
+&lt;p&gt;Within &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main.ts&lt;/code&gt; add the following code:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;function main(input: string) {
+    console.log(input);
+}
+
+main('hello world');
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;In your terminal run the following commands:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;npm run build
+npm run start
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;h1 id=&quot;youre-done&quot;&gt;You’re done!&lt;/h1&gt;
+
+&lt;p&gt;That’s pretty much it for standing up a NodeJS project with Typescript and Jest. Now you can begin writing the code you want to write.&lt;/p&gt;
+
+&lt;h1 id=&quot;bonus-setup---add-git-to-your-project&quot;&gt;Bonus Setup - Add Git to your project&lt;/h1&gt;
+
+&lt;p&gt;Run &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git init&lt;/code&gt; to create a local git repository in the current directory.&lt;/p&gt;
+
+&lt;p&gt;Create a file, &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.gitignore&lt;/code&gt; and add the following config files:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;node_modules
+build
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;Run:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git add .
+git commit -m 'initial commit'
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;If you have a remote repo configured you can set it as your origin with:&lt;/p&gt;
+
+&lt;div class=&quot;language-plaintext highlighter-rouge&quot;&gt;&lt;div class=&quot;highlight&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;git remote add origin &amp;lt;https://your/remote/repo.git&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;
+
+&lt;p&gt;The push your changes with &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;git push origin main&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;an-explanation-of-the-above&quot;&gt;An explanation of the above&lt;/h1&gt;
+
+&lt;h2 id=&quot;what-is-nodejs&quot;&gt;What is NodeJS?&lt;/h2&gt;
+
+&lt;p&gt;NodeJS is a runtime environment for javascript applications. The runtime is built on top of the Google Chrome V8 Javascript Engine. This engine compiles Javascript code to a lower-level language in order to make it more efficient. This enables the use of Javascript for writing web servers, which NodeJS is predominantly used for.&lt;/p&gt;
+
+&lt;h2 id=&quot;what-does-npm-init--y-do&quot;&gt;What does npm init -y do?&lt;/h2&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;npm init&lt;/code&gt; is used to create a &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package.json&lt;/code&gt; file. This file contains metadata for a NodeJS project.&lt;br /&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-y&lt;/code&gt; creates this file using all default properties. If &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-y&lt;/code&gt; is omitted, then the following prompts will be displayed while generating the file:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;package name&lt;/strong&gt; - the name of the package/project. Default is the directory name&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;version&lt;/strong&gt; - the version number of the package. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;1.0.0&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;description&lt;/strong&gt; - A description of the package. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&quot;&quot;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;entry point&lt;/strong&gt; - The entrypoint of the package. This is the value of the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;main&lt;/code&gt; attribute in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package.json&lt;/code&gt; file. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;index.js&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;test command&lt;/strong&gt; - This is the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;test&lt;/code&gt; script value. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;echo \&quot;Error: no test specified\&quot; &amp;amp;&amp;amp; exit 1&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;git repository&lt;/strong&gt; - The git repository of the package. Default is no entry&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;keywords&lt;/strong&gt; - Any keywords associated with the package. Default is no entry&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;author&lt;/strong&gt; - The author of the package. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;&quot;&quot;&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;licence&lt;/strong&gt; - The package license. Default is &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;ISC&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;what-does-npm-i--d-typescript-jest-typesjest-ts-jest-do&quot;&gt;What does npm i -D typescript jest @types/jest ts-jest do?&lt;/h2&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;npm i&lt;/code&gt; is shorthand for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;npm install&lt;/code&gt;. This command is used to install publicly available npm packages for use in a NodeJS project.&lt;br /&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;-D&lt;/code&gt; is shorthand for &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;--save-dev&lt;/code&gt;. this flag indicates that the packages to download are only for local development and not required for production. Packages downloaded using this flag are added to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;devDependencies&lt;/code&gt; field in the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;package.json&lt;/code&gt; file. Omitting this flag adds the packages to the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;dependencies&lt;/code&gt; field.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.npmjs.com/package/typescript&quot;&gt;typescript&lt;/a&gt; is the npm package that extends javascript to include a type system. Typescript files are identified via the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.ts&lt;/code&gt; file extension. These &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.ts&lt;/code&gt; files can be transpiled into javascript with the &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;tsc&lt;/code&gt; command.&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://jestjs.io/&quot;&gt;jest&lt;/a&gt; is a  modern javascript testing framework.&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.npmjs.com/package/@types/jest&quot;&gt;@types/jest&lt;/a&gt; is a package containing type definitions for Jest.&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.npmjs.com/package/ts-jest&quot;&gt;ts-jest&lt;/a&gt; a Jest transformer for Typescript&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;what-is-the-tsconfigjson-file-for&quot;&gt;What is the tsconfig.json file for?&lt;/h2&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig&quot;&gt;tsconfig&lt;/a&gt; contains various configurations for how your typescript modules should be transpiled into javascript.&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#compilerOptions&quot;&gt;CompilerOptions&lt;/a&gt; describes the output of your javascript modules. The properties provided above are:
+    &lt;ul&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#module&quot;&gt;module&lt;/a&gt; - describe the module system, e.g. ESM, CommonJS, AMD, etc&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#target&quot;&gt;target&lt;/a&gt; - The ECMAScript target version. This determines what features are downgraded during transpilation and which are left intact&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#outDir&quot;&gt;outDir&lt;/a&gt; - Where the transpiled &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;.js&lt;/code&gt; files are emitted&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#esModuleInterop&quot;&gt;esModuleInterop&lt;/a&gt; - Enabling resolves some default assumptions the Typescript transpiler makes about alternate module systems&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#forceConsistentCasingInFileNames&quot;&gt;forceConsistentCasingInFileNames&lt;/a&gt; - Enabling this feature forces file imports to match the file casing on disk&lt;/li&gt;
+      &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#strict&quot;&gt;strict&lt;/a&gt; - Enables a range of type-checking behaviour which leads to stronger guarantees of program correctness&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#include&quot;&gt;include&lt;/a&gt; lists the directories and files that should be transpiled into javascript.&lt;/li&gt;
+  &lt;li&gt;&lt;a href=&quot;https://www.typescriptlang.org/tsconfig#exclude&quot;&gt;exclude&lt;/a&gt; lists the directories and files that should not be transpiled. e.g. test files.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;what-is-the-jest-preset&quot;&gt;What is the jest preset?&lt;/h2&gt;
+
+&lt;p&gt;Within your jest config you can define a base configuration as your &lt;a href=&quot;https://jestjs.io/docs/configuration#preset-string&quot;&gt;preset&lt;/a&gt; that targets an npm module, in this case we’re using ts-jest.&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h1&gt;
+&lt;p&gt;The above guide should be viewed as a generic guide to get your project up and running. Different/additional configuration options may be required based on your project needs.&lt;/p&gt;</content><author><name></name></author><category term="node" /><category term="nodejs" /><category term="typescript" /><category term="jest" /><category term="tsconfig" /><category term="git" /><summary type="html">Let’s just get the boring stuff out the way.</summary></entry><entry><title type="html">API Protocols: SOAP, REST &amp;amp; More</title><link href="https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html" rel="alternate" type="text/html" title="API Protocols: SOAP, REST &amp;amp; More" /><published>2023-05-30T04:00:00+00:00</published><updated>2023-05-30T04:00:00+00:00</updated><id>https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols</id><content type="html" xml:base="https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html">&lt;p&gt;&lt;img src=&quot;/assets/2023-05-21-api-protocols/web.PNG&quot; alt=&quot;web services talking to eachother&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Web apis enable systems to share information across the internet. You are probably familiar with REST APIs, however there a many alternatives to REST which may fit your use-case. Below we talk about multiple API protocols including SOAP, REST, GraphQL, and gRPC.&lt;/p&gt;
+
+&lt;p&gt;Each of these descriptions also include an example implementation of a Library web service that allows a client to query for books, borrow, return, add, and remove books.&lt;/p&gt;
+
+&lt;h1 id=&quot;soap&quot;&gt;SOAP&lt;/h1&gt;
+&lt;h2 id=&quot;simple-object-access-protocol&quot;&gt;Simple Object Access Protocol&lt;/h2&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-05-21-api-protocols/soap-api.PNG&quot; alt=&quot;a cartoon computer washing itself with soap in a bath in the syle of edvard munch&quot; /&gt;
+That was an AI generated image…&lt;/p&gt;
+
+&lt;p&gt;Introduced in the late 1990s, SOAP is a message specification for exchanging information between web services. Unlike some other protocols, SOAP is transport independent and as such, can be used over HTTP, SMTP, TCP, UDP, etc.
+Given that these messages are structured in XML, and have multiple parts, SOAP messages may be much larger and therefore slower than its counterparts.&lt;/p&gt;
+
+&lt;p&gt;The structure of a SOAP message are as follows:&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Envelope
+    &lt;ul&gt;
+      &lt;li&gt;The envelope encapsulates the entirety of the message and identifies the document as a SOAP message&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Header
+    &lt;ul&gt;
+      &lt;li&gt;The header contains additional information about the message such as client credentials&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Body
+    &lt;ul&gt;
+      &lt;li&gt;The body includes details of the actual message that is being sent. This includes call and response information&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+  &lt;li&gt;Fault (optional)
+    &lt;ul&gt;
+      &lt;li&gt;Fault messages are returned as a http 500 response and include a fault code, a string, actor and detail&lt;/li&gt;
+    &lt;/ul&gt;
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;SOAP services typically include a WSDL (Web Service Description Language) document.
+This document describes the operations available on a given service, and the messages that can be exchanged. These documents are used as a contract between a client and server for exchanging messages and can even be imported into tools such as SoapUI and Postman.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40&quot;&gt;See here&lt;/a&gt; for the example Library api using SOAP as its messaging protocol.&lt;/p&gt;
+
+&lt;h1 id=&quot;rest&quot;&gt;REST&lt;/h1&gt;
+&lt;h2 id=&quot;representational-state-transfer&quot;&gt;REpresentational State Transfer&lt;/h2&gt;
+&lt;p&gt;&lt;img src=&quot;/assets/2023-05-21-api-protocols/rest-api.PNG&quot; alt=&quot;a computer sleeping in bed the syle of vincent van gogh&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;REST is the most common protocol used for modern web apis. Many messaging formats can be used, JSON is common.
+RESTful apis share the following six guiding constraints:&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;Uniform Interface:&lt;/strong&gt; Multiple architectural constraints are required to ensure a uniform way of interacting with a given service, regardless of the device or application type&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Stateless:&lt;/strong&gt; All the necessary state to handle the request is contained within the request. The server should not have to store anything related to the session.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Cacheable:&lt;/strong&gt; Responses should include whether the response is cacheable or not, and the cache duration.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Client-server based:&lt;/strong&gt; A RESTful service should have a client-server architecture. A client should not be concerned with data-storage or business logic. The server should not be concerned with the UI or user state.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Layered System:&lt;/strong&gt; The a restful architecture may be composed of multiple layers. Each layer should not know of any other layers other than the immediate layers with which they’re interfacing.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Code on Demand:&lt;/strong&gt; Server can also provide executable code to the client&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;more-on-uniform-interfaces&quot;&gt;More on Uniform Interfaces&lt;/h2&gt;
+&lt;p&gt;REST Apis are resource based and expose these resources via their URIs. Resources can be accessed or modified via a set of common HTTP methods:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;GET&lt;/strong&gt; - Request a given resource e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;GET my.service.com/api/books/1&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;PUT&lt;/strong&gt; - Modify a given resource e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;PUT my.service.com/api/books/1&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;POST&lt;/strong&gt; - Create a new resource e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;POST my.service.com/api/books&lt;/code&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;DELETE&lt;/strong&gt; - Delete a resource e.g. &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;DELETE my.service.com/api/books/1&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;Given a client has a representation of a resource, it should have enough information to be able to modify or delete the resource on the server. e.g. Getting a book (or books) may include the book id which can be used to call DELETE on that book.&lt;br /&gt;
+Where appropriate, responses should include links so the client can discover other resources easily, following HATEOAS practices.&lt;/p&gt;
+
+&lt;h2 id=&quot;hateoas&quot;&gt;HATEOAS&lt;/h2&gt;
+&lt;p&gt;Hypermedia as the Engine of Application State is the practice of including links to related URIs in api responses so that the client needs minimal knowledge of a web service. This practice decouples the client from needing to hardcode all a web server’s URIs thus making the server easier to change.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://codesandbox.io/p/sandbox/2023-05-27-rest-api-example-m2btd0&quot;&gt;See here&lt;/a&gt; for the same example api using REST as its messaging protocol.&lt;/p&gt;
+
+&lt;h1 id=&quot;graphql&quot;&gt;GraphQL&lt;/h1&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-05-21-api-protocols/graphql.PNG&quot; alt=&quot;graph ql&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Developed by Meta (Facebook?) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
+One of the problems with REST endpoints is often a given URI doesn’t include exactly what a client needs. The response may contain not enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.&lt;/p&gt;
+
+&lt;p&gt;GraphQL allows a client to specify only exactly what it requires from a single endpoint. Take the Library Service for example. A Book resource may have many properties associated with it which most clients aren’t necessarily concerned with. Instead of requesting the entire Book resource (or list of resources) the client can query just the book title and author. The server will return only the values the client requests.&lt;/p&gt;
+
+&lt;p&gt;GraphQL APIs can also be used a an API Gateway for multiple web servers.&lt;/p&gt;
+
+&lt;p&gt;Resources exposed by GraphQL services are defined in a Schema Definition Language (SDL). Similar to a SOAP’s wsdl files (but more consise), this schema defines the types, fields, relationships, an operations supported by a given API and serves as the contract between a client and server.&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk&quot;&gt;See here&lt;/a&gt; for the same example api, but this time using GraphQL.&lt;/p&gt;
+
+&lt;h1 id=&quot;grpc&quot;&gt;gRPC&lt;/h1&gt;
+
+&lt;p&gt;Google Remote Procedure Call, developed by Google and now maintained by the Cloud Native Computing Foundation, is an open-source, highly performant, lightweight messaging protocol for communicating between web services. With gRPC, a client can directly call a method on a server as if it were a local method.&lt;/p&gt;
+
+&lt;p&gt;This protocol is based around the concept of defining a shared API interface which describes the operations available on a given server, and the messages that can be exchanged between the client and server. Unlike in SOAP, which uses XML as its Shared Definition Language (IDL), gRPC uses a &lt;a href=&quot;https://protobuf.dev/&quot;&gt;protocol buffers&lt;/a&gt; as its IDL, resulting in much simpler contracts.&lt;/p&gt;
+
+&lt;p&gt;As gRPC relies on HTTP/2 as its transport layer it is able to parse data in binary format which is more light-weight than JSON and XML.&lt;/p&gt;
+
+&lt;p&gt;gRPC also supports bidirectional streaming wherein both the client and server send a sequence of messages using a read-write stream.&lt;/p&gt;
+
+&lt;p&gt;Before you run away to add gRPC layers to all your APIs, it should be worth noting that HTTP/2 is not supported by most modern browsers, so this protocol is best suited between system-system communication.&lt;/p&gt;
+
+&lt;p&gt;Finally, &lt;a href=&quot;https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc&quot;&gt;see here&lt;/a&gt; for the same example api with a gRPC interface.&lt;/p&gt;
+
+&lt;h1 id=&quot;summary&quot;&gt;Summary&lt;/h1&gt;
+
+&lt;p&gt;This was just an introduction to some current and emerging web service messaging protocols you will likely encounter throughout your career.&lt;/p&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;_&lt;/th&gt;
+      &lt;th&gt;Pros&lt;/th&gt;
+      &lt;th&gt;Cons&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;SOAP&lt;/td&gt;
+      &lt;td&gt;* Supports Message Level Security&lt;br /&gt;* Widely supported &lt;br /&gt;* Structured interfaces * Transport layer independent &lt;br /&gt;&lt;/td&gt;
+      &lt;td&gt;* Heavy-weight messages &lt;br /&gt;* Complex to configure&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;REST&lt;/td&gt;
+      &lt;td&gt;* Simple protocol built on widely adopted standards &lt;br /&gt;* Supports response caching &lt;br /&gt;&lt;/td&gt;
+      &lt;td&gt;* Limited realtime communication support &lt;br /&gt;* Not suited for complex or hierarchical data structures&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;GraphQL&lt;/td&gt;
+      &lt;td&gt;* flexible data fetching, no over/under fetching&lt;br /&gt;* Introspection enables clients to explore api schema&lt;/td&gt;
+      &lt;td&gt;* Lack of standardized caching and authn&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;gRPC&lt;/td&gt;
+      &lt;td&gt;* Highly performant &lt;br /&gt;* Strong client/server contracts &lt;br /&gt;* supports bidirectional streaming&lt;/td&gt;
+      &lt;td&gt;* Limited browser support&lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;</content><author><name></name></author><category term="api" /><category term="protocol" /><category term="rest" /><category term="soap" /><category term="grpc" /><category term="graphql" /><summary type="html"></summary></entry><entry><title type="html">An Introduction to Microservice Architectures</title><link href="https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html" rel="alternate" type="text/html" title="An Introduction to Microservice Architectures" /><published>2023-04-05T08:00:00+00:00</published><updated>2023-04-05T08:00:00+00:00</updated><id>https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview</id><content type="html" xml:base="https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html">&lt;p&gt;The microservice architectural style is heavily influenced by Domain Driven Design (DDD), in particular, the concept of a Bounded Context. A bounded context is the domain in which a system is built. This system may contain many entities and behaviours implemented in the form of code and database schemas which would be coupled together. Within a bounded context, these internal models (e.g. database schema) are never coupled to anything outside the bounded context. This allows a context to only define what it needs and not accommodate other contexts.&lt;/p&gt;
+
+&lt;p&gt;The primary goal of a microservice architecture is low coupling.&lt;/p&gt;
+
+&lt;h1 id=&quot;microservice-topology&quot;&gt;Microservice topology&lt;/h1&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-04-02-microservices/microservice-topology.PNG&quot; alt=&quot;microservice topology&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;As the name suggests, a service size in a microservice architecture is much smaller than other distributed architectures. Each service should include all the necessary parts to operate independently. Other characteristics can be describes as follows:&lt;/p&gt;
+
+&lt;h2 id=&quot;distributed&quot;&gt;Distributed&lt;/h2&gt;
+
+&lt;p&gt;Microservices form a distributed architecture, meaning each service runs in its own process. These processes could be virtual machines, containers, or even individual physical hardware. This reduces the operational overhead of shared, multitenant infrastructure which can become an overly complex bottleneck for applications as they scale.&lt;/p&gt;
+
+&lt;p&gt;Performance can be a negative quality of distributed architectures due to more network calls as well as security verifications at each api endpoint.&lt;/p&gt;
+
+&lt;h2 id=&quot;bounded-context&quot;&gt;Bounded Context&lt;/h2&gt;
+
+&lt;p&gt;The bounded context is the driving philosophy of microservices; Each service modals a single domain. Therefore, each service should include everything necessary to operate within the application. By contrast, in a monolith architecture, many domains of the service may share common classes, e,g, Customer. This couples those domains together. Within a microservice architecture, coupling is avoided and instead each service would define its own Customer class.
+Microservices can be considered the implementation of the logical concepts in Domain Driven Design.&lt;/p&gt;
+
+&lt;h2 id=&quot;granularity&quot;&gt;Granularity&lt;/h2&gt;
+
+&lt;p&gt;It is important not to focus on creating the smallest possible service but to instead define the granularity of a single service. The purpose of the service boundary is to capture a domain or workflow, these boundaries might not always be so “small”. Below are some guidelines to help define the granularity of a bounded context.&lt;/p&gt;
+
+&lt;h3 id=&quot;define-the-purpose&quot;&gt;Define the purpose&lt;/h3&gt;
+&lt;p&gt;What is the inspiration for the service boundary?&lt;/p&gt;
+
+&lt;h3 id=&quot;identify-transactions&quot;&gt;Identify transactions&lt;/h3&gt;
+&lt;p&gt;Identifying entities that need to cooperate in a transaction may help identify a service boundary. It is best to avoid transactions across distributed systems as these can introduce additional complexity.&lt;/p&gt;
+
+&lt;h3 id=&quot;choreographed-services&quot;&gt;Choreographed services&lt;/h3&gt;
+&lt;p&gt;If a collection of services require extensive communication to function, it may be worth bundling these services into a single service.&lt;/p&gt;
+
+&lt;h2 id=&quot;data-isolation&quot;&gt;Data Isolation&lt;/h2&gt;
+&lt;p&gt;Many architectural styles may share a single database between services. However, given the emphasis on low coupling in microservices, this activity is highly discouraged. This provides flexibility for teams. Services aren’t forced to use a particular tool, each service and can use the most appropriate tool for data storage.&lt;/p&gt;
+
+&lt;h2 id=&quot;api-layer&quot;&gt;API Layer&lt;/h2&gt;
+&lt;p&gt;An API layer is an optional feature in microservice architectures however it does offer a good location to perform useful tasks, such as defining a proxy, or to tie into operational facilities. It can also enable the flexibility of the architecture, as services can be added and removed without affecting the external interface. This layer should not be used as a mediator or orchestration tool. Those processes belong within the bounded context.&lt;/p&gt;
+
+&lt;h2 id=&quot;operational-re-use&quot;&gt;Operational Re-use&lt;/h2&gt;
+&lt;p&gt;While the microservice approach prefers duplication over coupling, there are common architectural elements that do benefit from coupling overall such as monitoring and logging. While some architectural styles emphases reuse of everything, microservices decouple domain concerns, but may still get value from coupling operational concerns.&lt;/p&gt;
+
+&lt;p&gt;The sidecar pattern allows coupling of operations while decoupling domain concerns. With this pattern all operational concerns exist inside each service as a distinct component. When it comes time to update the monitoring tooling, the component can be updated and all microservices get the new functionality.&lt;/p&gt;
+
+&lt;h1 id=&quot;pros-and-cons&quot;&gt;Pros and Cons&lt;/h1&gt;
+
+&lt;table&gt;
+  &lt;thead&gt;
+    &lt;tr&gt;
+      &lt;th&gt;Pros&lt;/th&gt;
+      &lt;th&gt;Cons&lt;/th&gt;
+    &lt;/tr&gt;
+  &lt;/thead&gt;
+  &lt;tbody&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Scalability - Within a microservice architecture, each domain can be scaled independently&lt;/td&gt;
+      &lt;td&gt;Complexity - Microservice architectures can be more complex to design and develop as it involves managing multiple interconnected domains&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Resilience - If one service fails, other services will still be available&lt;/td&gt;
+      &lt;td&gt;Performance - Communication between domains requires calls over the network instead of within a single system&lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Faster deployments - builds and deployments can be isolated between domains&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+    &lt;tr&gt;
+      &lt;td&gt;Testability - domains can be tested in isolation resulting in simpler tests&lt;/td&gt;
+      &lt;td&gt; &lt;/td&gt;
+    &lt;/tr&gt;
+  &lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;p&gt;For more information on microservices and software architecture check out these resources:&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://martinfowler.com/articles/microservices.html&quot;&gt;https://martinfowler.com/articles/microservices.html&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;&lt;a href=&quot;https://www.oreilly.com/library/view/fundamentals-of-software/9781492043447/&quot;&gt;https://www.oreilly.com/library/view/fundamentals-of-software/9781492043447/&lt;/a&gt;&lt;/p&gt;</content><author><name></name></author><category term="ddd" /><category term="domain" /><category term="driven" /><category term="design" /><category term="microservices" /><category term="architecture" /><summary type="html">The microservice architectural style is heavily influenced by Domain Driven Design (DDD), in particular, the concept of a Bounded Context. A bounded context is the domain in which a system is built. This system may contain many entities and behaviours implemented in the form of code and database schemas which would be coupled together. Within a bounded context, these internal models (e.g. database schema) are never coupled to anything outside the bounded context. This allows a context to only define what it needs and not accommodate other contexts.</summary></entry><entry><title type="html">The Value of Value Objects</title><link href="https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html" rel="alternate" type="text/html" title="The Value of Value Objects" /><published>2023-03-21T08:00:00+00:00</published><updated>2023-03-21T08:00:00+00:00</updated><id>https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects</id><content type="html" xml:base="https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html">&lt;p&gt;&lt;img src=&quot;/assets/2023-03-21-value-objects/d%20d%20d.PNG&quot; alt=&quot;this is a Domain Driven Design thing&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Does this scenario sound familiar to you? You’re writing an api in Kotlin that accepts a customer id and a message to send to the customer.
+You validate the fields as they enter the api then write the function to send the message to the customer with the signature:&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;fun sendMessageToCustomer(message: String, customerId: String): Unit { ...&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Now, for reasons decided a long time ago a valid customer id has the format of 4 lowercase letters followed by 6 numeric values. And the message cannot be empty. You’ve already validated the values as they entered the api, but do you need validate them again within this method, or the methods these are passed to? 
+In some cases you might. You might even have a validation library that’s used by all your customer apis for validating the id to ensure the validation rules don’t drift (except for within that one service).&lt;/p&gt;
+
+&lt;p&gt;Then as the consumer of this method, was the signature&lt;/p&gt;
+
+&lt;p&gt;&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sendMessageToCustomer(customerId, message)&lt;/code&gt; or&lt;br /&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sendMessageToCustomer(message, customerId)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Both will compile fine. You’d better add validation somewhere to ensure that something breaks if the wrong properties are used (Or if using an OO language, maybe restructure to something like &lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;customer.sendMessage(message)&lt;/code&gt;).&lt;/p&gt;
+
+&lt;h1 id=&quot;introducing-value-objects&quot;&gt;Introducing Value Objects&lt;/h1&gt;
+
+&lt;p&gt;Alternatively, your could introduce some value objects. These replace primitive types as the building blocks of your domain. 
+This is very straight forward in Kotlin through the use of data classes.&lt;/p&gt;
+
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-kotlin&quot; data-lang=&quot;kotlin&quot;&gt;&lt;span class=&quot;kd&quot;&gt;data class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;CustomerId&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;init&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;tester&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;=&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Regex&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;^[a-z]{4}\\d{6}$&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(!&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;tester&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;containsMatchIn&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;))&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;InvalidCustomerIdException&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Invalid customer id format: ${value})
+&lt;/span&gt;        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+
+&lt;span class=&quot;kd&quot;&gt;data class&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;Message&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;kd&quot;&gt;val&lt;/span&gt; &lt;span class=&quot;py&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;:&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;String&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+    &lt;span class=&quot;nf&quot;&gt;init&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+        &lt;span class=&quot;k&quot;&gt;if&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;n&quot;&gt;value&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;.&lt;/span&gt;&lt;span class=&quot;nf&quot;&gt;count&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;&amp;lt;&lt;/span&gt; &lt;span class=&quot;mi&quot;&gt;1&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt; &lt;span class=&quot;p&quot;&gt;{&lt;/span&gt;
+            &lt;span class=&quot;k&quot;&gt;throw&lt;/span&gt; &lt;span class=&quot;nc&quot;&gt;InvalidMessageException&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;(&lt;/span&gt;&lt;span class=&quot;s&quot;&gt;&quot;Message must be at least 1 character long&quot;&lt;/span&gt;&lt;span class=&quot;p&quot;&gt;)&lt;/span&gt;
+        &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+    &lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;
+&lt;span class=&quot;p&quot;&gt;}&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
+
+&lt;p&gt;We can now update our function signature to:&lt;br /&gt;
+&lt;code class=&quot;language-plaintext highlighter-rouge&quot;&gt;sendMessageToCustomer(message: Message, customer: CustomerId)&lt;/code&gt;&lt;/p&gt;
+
+&lt;p&gt;Now these properties can be used in place of strings for any function parameter that expects a customer id or a message and the function can be certain the values are correct as the validation is part the object.&lt;/p&gt;
+
+&lt;h1 id=&quot;conclusion&quot;&gt;Conclusion&lt;/h1&gt;
+
+&lt;p&gt;Value objects can be an effective way to reduce ambiguity and duplication within domain code as well as emphasizing use of the ubiquitous language within your domain. The next time you find yourself representing a core concept of your domain as a String or Int or Boolean, consider defining a value object instead.&lt;/p&gt;</content><author><name></name></author><category term="domain" /><category term="driven" /><category term="design" /><category term="primitives" /><category term="patterns" /><category term="clean" /><category term="code" /><category term="value" /><category term="objects" /><category term="primitive" /><category term="obsession" /><summary type="html"></summary></entry><entry><title type="html">The four qualities of a good unit test</title><link href="https://kristianstolen.com/unit/testing/engineering/practices/quality/assurance/qa/ci/cd/2023/02/18/qualities-of-a-good-unit-test.html" rel="alternate" type="text/html" title="The four qualities of a good unit test" /><published>2023-02-18T08:00:00+00:00</published><updated>2023-02-18T08:00:00+00:00</updated><id>https://kristianstolen.com/unit/testing/engineering/practices/quality/assurance/qa/ci/cd/2023/02/18/qualities-of-a-good-unit-test</id><content type="html" xml:base="https://kristianstolen.com/unit/testing/engineering/practices/quality/assurance/qa/ci/cd/2023/02/18/qualities-of-a-good-unit-test.html">&lt;p&gt;The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that “prove” your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite).&lt;/p&gt;
+
+&lt;p&gt;There are many examples of software design patterns and code smells which help guide application code design. While these patterns can also be used to build test suites, there are four metrics in particular that should be used to determine the quality of a unit test.&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;Fast Feedback&lt;/li&gt;
+  &lt;li&gt;Maintainability&lt;/li&gt;
+  &lt;li&gt;Protection against regressions&lt;/li&gt;
+  &lt;li&gt;Resistance to refactoring&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h1 id=&quot;fast-feedback&quot;&gt;Fast feedback&lt;/h1&gt;
+
+&lt;p&gt;Fast feedback is an essential quality of a unit test. Faster tests enable more tests to be run, as well as enabling the tests to be run more often. Tests that run quickly drastically shorten the development feedback loop, notifying you of any regressions, and reduce the cost of fixing those regressions.&lt;/p&gt;
+
+&lt;p&gt;Slow tests dissuade developers from running them more often, and writing more tests. This also delays the development feedback loop and prolong the period during which bugs remain unnoticed.&lt;/p&gt;
+
+&lt;h1 id=&quot;maintainability&quot;&gt;Maintainability&lt;/h1&gt;
+
+&lt;p&gt;Test maintainability consists of two components:&lt;/p&gt;
+&lt;h2 id=&quot;how-hard-is-it-to-understand-the-test&quot;&gt;How hard is it to understand the test&lt;/h2&gt;
+
+&lt;p&gt;This relates to the size of the test, the fewer the lines of code of a test, the easier it is to understand. It’s also easier to change a small test.&lt;/p&gt;
+
+&lt;h2 id=&quot;how-hard-is-it-to-run-the-test&quot;&gt;How hard is it to run the test&lt;/h2&gt;
+
+&lt;p&gt;If a test works with out-of-process dependencies, those dependencies will need to be maintained and operational during the test’s lifetime.&lt;/p&gt;
+
+&lt;h1 id=&quot;protection-against-regressions&quot;&gt;Protection against regressions&lt;/h1&gt;
+
+&lt;p&gt;A regression happens when a feature unexpectedly stops working after change. The more features in a system, the more likely changes to one feature will result in regressions in other features. For this reason it is crucial to develop protections against these regressions before they’re identified by the users of your system.&lt;/p&gt;
+
+&lt;p&gt;To evaluate how well a given test scores against protecting against regressions, the following factors need to be considered:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;The amount of code being executed&lt;/li&gt;
+  &lt;li&gt;The complexity of the code&lt;/li&gt;
+  &lt;li&gt;The domain significance of the code&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h1 id=&quot;resistance-to-refactoring&quot;&gt;Resistance to refactoring&lt;/h1&gt;
+
+&lt;p&gt;A test’s resistance to refactoring is the degree to which a test can sustain a refactoring of the underlying application code without failing.&lt;/p&gt;
+
+&lt;p&gt;Refactor means to change the internal structure of existing code without changing its observable behaviour.&lt;/p&gt;
+
+&lt;p&gt;If a test fails due to a refactoring of the system under test, then this is considered a false-positive.&lt;/p&gt;
+
+&lt;p&gt;To evaluate how well a given test scores against resistance to refactoring, measure the number of false-positives it generates, the fewer the better.&lt;/p&gt;
+
+&lt;p&gt;For more information on unit testing practices, check out &lt;a href=&quot;https://www.manning.com/books/unit-testing&quot;&gt;Unit Testing Principles, Practices, and Patterns&lt;/a&gt; by Vladimir Khorikov. 
+&lt;img src=&quot;/assets/book-references/unit-testing-principles-practices-and-patterns.jpg&quot; alt=&quot;unit testing principles practices and patterns&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><category term="unit" /><category term="testing" /><category term="engineering" /><category term="practices" /><category term="quality" /><category term="assurance" /><category term="QA" /><category term="CI" /><category term="CD" /><summary type="html">The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that “prove” your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite).</summary></entry><entry><title type="html">Refactoring towards valuable unit tests</title><link href="https://kristianstolen.com/unit/testing/refactoring/humble/object/engineering/practices/quality/assurance/qa/ci/cd/2023/02/08/refactoring-towards-valuable-unit-tests.html" rel="alternate" type="text/html" title="Refactoring towards valuable unit tests" /><published>2023-02-08T08:00:00+00:00</published><updated>2023-02-08T08:00:00+00:00</updated><id>https://kristianstolen.com/unit/testing/refactoring/humble/object/engineering/practices/quality/assurance/qa/ci/cd/2023/02/08/refactoring-towards-valuable-unit-tests</id><content type="html" xml:base="https://kristianstolen.com/unit/testing/refactoring/humble/object/engineering/practices/quality/assurance/qa/ci/cd/2023/02/08/refactoring-towards-valuable-unit-tests.html">&lt;p&gt;The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that “prove” your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite). Enabling the use of effective unit tests often requires some refactoring of production code.&lt;/p&gt;
+
+&lt;p&gt;All code can be categorized along two dimensions:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Complexity / Domain significance&lt;/li&gt;
+  &lt;li&gt;Number of collaborators (aka dependencies)&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;An indication of complex code can be a high cyclomatic complexity.&lt;/p&gt;
+
+&lt;p&gt;Domain significance describes how significant the code is to your core-domain. In a hexagonal architecture, this is typically all the code within your domain layer.&lt;/p&gt;
+
+&lt;p&gt;A collaborator is a type of dependency that is either mutable (e.g. a class that changes state), or an out-of-process dependency (e.g. a database). Immutable dependencies (values / value objects) do not count towards the number of collaborators.&lt;/p&gt;
+
+&lt;p&gt;These two dimensions provide us with four types of code:&lt;/p&gt;
+
+&lt;h2 id=&quot;domain-model--algorithms&quot;&gt;Domain model &amp;amp; algorithms&lt;/h2&gt;
+
+&lt;p&gt;The domain model and algorithms not specific to the domain may often require complex code, but the number of collaborators should be limited.&lt;/p&gt;
+
+&lt;h2 id=&quot;trivial-code&quot;&gt;Trivial code&lt;/h2&gt;
+
+&lt;p&gt;Examples of this code are parameterless constructors or simple object properties. This code also has little domain significance.&lt;/p&gt;
+
+&lt;h2 id=&quot;controllers&quot;&gt;Controllers&lt;/h2&gt;
+
+&lt;p&gt;This code has many collaborators but doesn’t contain any complex logic and instead coordinates the work between other components with domain significance.&lt;/p&gt;
+
+&lt;h2 id=&quot;overcomplicated-code&quot;&gt;Overcomplicated code&lt;/h2&gt;
+
+&lt;p&gt;This is code that has a high number of collaborators, and also contains complex business logic or algorithms.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-02-08-refactoring-to-valuable-unit-tests/code-quadrants.PNG&quot; alt=&quot;the four code quadrants&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Focusing your unit tests on the top left quadrant typically gives you the greatest return on your efforts and results in valuable test that are easy to write and maintain.&lt;/p&gt;
+
+&lt;p&gt;Trivial code should not require testing at all as these tests provide little value.&lt;/p&gt;
+
+&lt;p&gt;Testing controllers should be reserved for a limited number of integration tests.&lt;/p&gt;
+
+&lt;p&gt;Overcomplicated code should be split into it’s two its adjacent quadrants.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-02-08-refactoring-to-valuable-unit-tests/remove-overcomplicated-code.PNG&quot; alt=&quot;remove overcomplicated code&quot; /&gt;&lt;/p&gt;
+
+&lt;h1 id=&quot;welcome-the-humble-object-pattern&quot;&gt;Welcome the Humble Object Pattern&lt;/h1&gt;
+
+&lt;p&gt;One method of simplifying overcomplicated code can be achieved using the humble object pattern. Complicated code that is difficult to test is often coupled to a framework dependency, such as UI or database.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-02-08-refactoring-to-valuable-unit-tests/humble-object-before.PNG&quot; alt=&quot;hard to test code&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The humble object pattern removes the testable parts of the code out of the difficult to test component, the resulting component becomes a humble wrapper around the testable code.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-02-08-refactoring-to-valuable-unit-tests/humble-object-after.PNG&quot; alt=&quot;easy to test code&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;This pattern also follows the single responsibility principle, which states that each class should have only one responsibility. In this case it means separating out the business logic (code depth) from the orchestration of the system (code width). Your domain logic should be deep, but narrow (having few collaborators), and your controllers should be wide, but shallow (having little complexity).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/2023-02-08-refactoring-to-valuable-unit-tests/shallow-controller-narrow-logic.PNG&quot; alt=&quot;shallow controllers and deep business logic&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;For more information on unit testing practices, check out &lt;a href=&quot;https://www.manning.com/books/unit-testing&quot;&gt;Unit Testing Principles, Practices, and Patterns&lt;/a&gt; by Vladimir Khorikov. 
+&lt;img src=&quot;/assets/book-references/unit-testing-principles-practices-and-patterns.jpg&quot; alt=&quot;unit testing principles practices and patterns&quot; /&gt;&lt;/p&gt;</content><author><name></name></author><category term="unit" /><category term="testing" /><category term="refactoring" /><category term="humble" /><category term="object" /><category term="engineering" /><category term="practices" /><category term="quality" /><category term="assurance" /><category term="QA" /><category term="CI" /><category term="CD" /><summary type="html">The aim of unit testing is to enable the sustainable growth of software systems. This means more than just writing tests that “prove” your code does what you expect, but also to ensure that further changes are not hindered by the existing code base (including the test suite). Enabling the use of effective unit tests often requires some refactoring of production code.</summary></entry><entry><title type="html">Vector Calculation and Movement</title><link href="https://kristianstolen.com/vector/math/2023/01/10/vectors.html" rel="alternate" type="text/html" title="Vector Calculation and Movement" /><published>2023-01-10T08:00:00+00:00</published><updated>2023-01-10T08:00:00+00:00</updated><id>https://kristianstolen.com/vector/math/2023/01/10/vectors</id><content type="html" xml:base="https://kristianstolen.com/vector/math/2023/01/10/vectors.html">&lt;h1 id=&quot;vectors&quot;&gt;Vectors&lt;/h1&gt;
+
+&lt;h2 id=&quot;what-are-they&quot;&gt;What are they?&lt;/h2&gt;
+
+&lt;p&gt;A vector is a representation of a point in space relative to another. You can think of a vector as an arrow.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_1.PNG&quot; alt=&quot;A vector is a lot like an arrow&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;A vector has two properties:&lt;/p&gt;
+&lt;ol&gt;
+  &lt;li&gt;Magnitude. This is the length of the arrow&lt;/li&gt;
+  &lt;li&gt;Direction. This is the angle in which the arrow is pointing.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_components.PNG&quot; alt=&quot;A vector has a magnitude and direction&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Another way we can represent a vector is via a pair of numbers, e.g. x and y.&lt;/p&gt;
+
+&lt;p&gt;Let’s say you’re at point (0,0) and you move 3 units in the x direction, and 4 units in y direction. You are now at the vector position (3, 4).&lt;/p&gt;
+
+&lt;h2 id=&quot;why-do-vectors-matter&quot;&gt;Why do vectors matter?&lt;/h2&gt;
+
+&lt;p&gt;We use x and y to measure many properties of an object, such as its position, velocity, and acceleration. Using vectors and performing vector mathematics on these properties can be very helpful.&lt;/p&gt;
+
+&lt;h1 id=&quot;vector-math&quot;&gt;Vector Math&lt;/h1&gt;
+
+&lt;h2 id=&quot;add-two-vectors&quot;&gt;Add two vectors&lt;/h2&gt;
+
+&lt;p&gt;What does it mean to add two vectors?
+We can visualize this such that we have two vectors with different magnitudes and directions.&lt;/p&gt;
+
+&lt;p&gt;Vector A has an (x, y) value of (3,4).&lt;br /&gt;
+Vector B has an (x, y) value of (2,-2).&lt;/p&gt;
+
+&lt;p&gt;By adding one to the other we shift the starting point of one the the ending point of the other, we can the trace the vector to this new point.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_add.PNG&quot; alt=&quot;Vector addition&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;The mathematics of this is very simple too. Using the vectors above, we can use the calculation:&lt;/p&gt;
+
+&lt;p&gt;c.x = a.x + b.x&lt;br /&gt;
+c.y = a.y + b.y&lt;/p&gt;
+
+&lt;p&gt;Using the above vectors as examples. We can determine Vector C by performing:&lt;/p&gt;
+
+&lt;p&gt;c.x = 3 + 2 = 5&lt;br /&gt;
+c.y = 4 + (-2) = 2&lt;/p&gt;
+
+&lt;p&gt;Which gives Vector C the value (5,2).&lt;/p&gt;
+
+&lt;p&gt;Naturally it doesn’t matter the order in which we add these vectors. This can be represented visually too:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_add_2.PNG&quot; alt=&quot;Vector addition doesn't have an order&quot; /&gt;&lt;/p&gt;
+
+&lt;h2 id=&quot;subtract-two-vectors&quot;&gt;Subtract two vectors&lt;/h2&gt;
+
+&lt;p&gt;Subtracting vectors is very much similar to addition. We can use the equation:&lt;/p&gt;
+
+&lt;p&gt;c.x = a.x - b.x&lt;br /&gt;
+c.y = a.y - b.y&lt;/p&gt;
+
+&lt;p&gt;We can represent this visually like so:&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_sub.PNG&quot; alt=&quot;Vector subtraction&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;In this scenario, we’re subtracting b from a, which we can visualize as the b, pointing in the opposite direction being added to a.&lt;/p&gt;
+
+&lt;p&gt;Using our initial A and B vectors, we can calculate C when we subtract B from A.&lt;/p&gt;
+
+&lt;p&gt;c.x = 3 - 3 = 0&lt;br /&gt;
+c.y = 4 - (-2) = 6&lt;/p&gt;
+
+&lt;p&gt;Which gives Vector C the value (0, 6).&lt;/p&gt;
+
+&lt;p&gt;Just like scalar (single number) subtraction, subtracting b from a gives a different result than subtracting a from b.&lt;/p&gt;
+
+&lt;p&gt;c.x = 3 - 3 = 0&lt;br /&gt;
+c.y = -2 - 4 = -6&lt;/p&gt;
+
+&lt;p&gt;Which gives Vector C the value (0, -6).&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_sub_2.PNG&quot; alt=&quot;Vector subtraction does have an order&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;why is this useful?&lt;/p&gt;
+
+&lt;h2 id=&quot;vector-multiplication&quot;&gt;Vector multiplication&lt;/h2&gt;
+
+&lt;p&gt;Another way of thinking about multiplying a vector is scaling a vector, which means we change the vector magnitude but maintain the direction.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_mult.PNG&quot; alt=&quot;Vector scaling&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;To scale a vector by a given amount, we multiply it’s x and y properties by a scalar value, e.g. to multiply a vector by 2 we use the following calculation:&lt;/p&gt;
+
+&lt;p&gt;c.x = a.x * 2&lt;br /&gt;
+c.y = a.y * 2&lt;/p&gt;
+
+&lt;p&gt;Using Vector A again as our example:&lt;/p&gt;
+
+&lt;p&gt;c.x = 3 * 2  = 6
+c.y = 4 * 2 = 8&lt;/p&gt;
+
+&lt;p&gt;Which gives Vector C the value (6, 8).&lt;/p&gt;
+
+&lt;h2 id=&quot;vector-magnitude&quot;&gt;Vector magnitude&lt;/h2&gt;
+
+&lt;p&gt;We’ve talked a lot about the vector magnitude but how do we actually calculate it? You may have noticed a relationship between Vectors and right angle triangles in many of these illustrations. We can think of the magnitude of a vector as the hypotenuse of a right angle triangle, with x and y being the opposite and adjacent sides. 
+vector represented as an x and y coordinate. Basic trigonometry teaches us that the square of the hypotenuse is equal to the square of the opposite plus the square of the adjacent (c*c = a*a + a*b), therefore we can calculate the magnitude of a vector using the following equation:&lt;/p&gt;
+
+&lt;p&gt;mag = sqrt(a*a + b*b)&lt;/p&gt;
+
+&lt;p&gt;Using Vector A again as an example, we can calculate its magnitude:&lt;/p&gt;
+
+&lt;p&gt;mag = sqrt(3*3 + 4*4)&lt;br /&gt;
+mag = sqrt(9 + 16)&lt;br /&gt;
+mag = sqrt(25)&lt;br /&gt;
+mag = 5&lt;/p&gt;
+
+&lt;p&gt;Why would we want to know the magnitude of a vector? This can be useful if we want to set limitations of a vector, e.g. if the magnitude of a vector is greater than 10, we can normalize it, and then multiply it by 10.&lt;/p&gt;
+
+&lt;h2 id=&quot;vector-normalization&quot;&gt;Vector normalization&lt;/h2&gt;
+
+&lt;p&gt;Normalizing a vector transforms the magnitude of a vector to 1, while maintaining the angle. In order to normalize a vector, we can divide the x and y values by the magnitude:&lt;/p&gt;
+
+&lt;p&gt;c.x = a.x / mag(a)&lt;br /&gt;
+c.y = a.y / mag(a)&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/assets/vectors/vector_normalize.PNG&quot; alt=&quot;normalizing a vector&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;Once the vector is normalized we can multiply it by any value to set the magnitude.&lt;/p&gt;</content><author><name></name></author><category term="vector" /><category term="math" /><summary type="html">Vectors</summary></entry></feed>

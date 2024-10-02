@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>API Protocols: SOAP, REST &amp; More | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="API Protocols: SOAP, REST &amp; More" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="There’s more to web services than REST APIs. Here we discuss some alternatives and weigh up their strengths and weaknesses. An example api is provided for each protocol." />
+<meta property="og:description" content="There’s more to web services than REST APIs. Here we discuss some alternatives and weigh up their strengths and weaknesses. An example api is provided for each protocol." />
+<link rel="canonical" href="https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html" />
+<meta property="og:url" content="https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-05-30T04:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="API Protocols: SOAP, REST &amp; More" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-05-30T04:00:00+00:00","datePublished":"2023-05-30T04:00:00+00:00","description":"There’s more to web services than REST APIs. Here we discuss some alternatives and weigh up their strengths and weaknesses. An example api is provided for each protocol.","headline":"API Protocols: SOAP, REST &amp; More","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html"},"url":"https://kristianstolen.com/api/protocol/rest/soap/grpc/graphql/2023/05/30/api-protocols.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">API Protocols: SOAP, REST & More</h1>
+  <div class="post-meta">
+    <time datetime="2023-05-30T04:00:00+00:00" itemprop="datePublished">
+      30 May 2023
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">api</span></li><li>
+              <span class="post-category">protocol</span></li><li>
+              <span class="post-category">rest</span></li><li>
+              <span class="post-category">soap</span></li><li>
+              <span class="post-category">grpc</span></li><li>
+              <span class="post-category">graphql</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <p><img src="/assets/2023-05-21-api-protocols/web.PNG" alt="web services talking to eachother" /></p>
+
+<p>Web apis enable systems to share information across the internet. You are probably familiar with REST APIs, however there a many alternatives to REST which may fit your use-case. Below we talk about multiple API protocols including SOAP, REST, GraphQL, and gRPC.</p>
+
+<p>Each of these descriptions also include an example implementation of a Library web service that allows a client to query for books, borrow, return, add, and remove books.</p>
+
+<h1 id="soap">SOAP</h1>
+<h2 id="simple-object-access-protocol">Simple Object Access Protocol</h2>
+
+<p><img src="/assets/2023-05-21-api-protocols/soap-api.PNG" alt="a cartoon computer washing itself with soap in a bath in the syle of edvard munch" />
+That was an AI generated image…</p>
+
+<p>Introduced in the late 1990s, SOAP is a message specification for exchanging information between web services. Unlike some other protocols, SOAP is transport independent and as such, can be used over HTTP, SMTP, TCP, UDP, etc.
+Given that these messages are structured in XML, and have multiple parts, SOAP messages may be much larger and therefore slower than its counterparts.</p>
+
+<p>The structure of a SOAP message are as follows:</p>
+
+<ul>
+  <li>Envelope
+    <ul>
+      <li>The envelope encapsulates the entirety of the message and identifies the document as a SOAP message</li>
+    </ul>
+  </li>
+  <li>Header
+    <ul>
+      <li>The header contains additional information about the message such as client credentials</li>
+    </ul>
+  </li>
+  <li>Body
+    <ul>
+      <li>The body includes details of the actual message that is being sent. This includes call and response information</li>
+    </ul>
+  </li>
+  <li>Fault (optional)
+    <ul>
+      <li>Fault messages are returned as a http 500 response and include a fault code, a string, actor and detail</li>
+    </ul>
+  </li>
+</ul>
+
+<p>SOAP services typically include a WSDL (Web Service Description Language) document.
+This document describes the operations available on a given service, and the messages that can be exchanged. These documents are used as a contract between a client and server for exchanging messages and can even be imported into tools such as SoapUI and Postman.</p>
+
+<p><a href="https://codesandbox.io/p/sandbox/2023-05-21-soap-api-example-yrov40">See here</a> for the example Library api using SOAP as its messaging protocol.</p>
+
+<h1 id="rest">REST</h1>
+<h2 id="representational-state-transfer">REpresentational State Transfer</h2>
+<p><img src="/assets/2023-05-21-api-protocols/rest-api.PNG" alt="a computer sleeping in bed the syle of vincent van gogh" /></p>
+
+<p>REST is the most common protocol used for modern web apis. Many messaging formats can be used, JSON is common.
+RESTful apis share the following six guiding constraints:</p>
+
+<ol>
+  <li><strong>Uniform Interface:</strong> Multiple architectural constraints are required to ensure a uniform way of interacting with a given service, regardless of the device or application type</li>
+  <li><strong>Stateless:</strong> All the necessary state to handle the request is contained within the request. The server should not have to store anything related to the session.</li>
+  <li><strong>Cacheable:</strong> Responses should include whether the response is cacheable or not, and the cache duration.</li>
+  <li><strong>Client-server based:</strong> A RESTful service should have a client-server architecture. A client should not be concerned with data-storage or business logic. The server should not be concerned with the UI or user state.</li>
+  <li><strong>Layered System:</strong> The a restful architecture may be composed of multiple layers. Each layer should not know of any other layers other than the immediate layers with which they’re interfacing.</li>
+  <li><strong>Code on Demand:</strong> Server can also provide executable code to the client</li>
+</ol>
+
+<h2 id="more-on-uniform-interfaces">More on Uniform Interfaces</h2>
+<p>REST Apis are resource based and expose these resources via their URIs. Resources can be accessed or modified via a set of common HTTP methods:</p>
+<ul>
+  <li><strong>GET</strong> - Request a given resource e.g. <code class="language-plaintext highlighter-rouge">GET my.service.com/api/books/1</code></li>
+  <li><strong>PUT</strong> - Modify a given resource e.g. <code class="language-plaintext highlighter-rouge">PUT my.service.com/api/books/1</code></li>
+  <li><strong>POST</strong> - Create a new resource e.g. <code class="language-plaintext highlighter-rouge">POST my.service.com/api/books</code></li>
+  <li><strong>DELETE</strong> - Delete a resource e.g. <code class="language-plaintext highlighter-rouge">DELETE my.service.com/api/books/1</code></li>
+</ul>
+
+<p>Given a client has a representation of a resource, it should have enough information to be able to modify or delete the resource on the server. e.g. Getting a book (or books) may include the book id which can be used to call DELETE on that book.<br />
+Where appropriate, responses should include links so the client can discover other resources easily, following HATEOAS practices.</p>
+
+<h2 id="hateoas">HATEOAS</h2>
+<p>Hypermedia as the Engine of Application State is the practice of including links to related URIs in api responses so that the client needs minimal knowledge of a web service. This practice decouples the client from needing to hardcode all a web server’s URIs thus making the server easier to change.</p>
+
+<p><a href="https://codesandbox.io/p/sandbox/2023-05-27-rest-api-example-m2btd0">See here</a> for the same example api using REST as its messaging protocol.</p>
+
+<h1 id="graphql">GraphQL</h1>
+
+<p><img src="/assets/2023-05-21-api-protocols/graphql.PNG" alt="graph ql" /></p>
+
+<p>Developed by Meta (Facebook?) in 2012 and open-sourced in 2015, GraphQL provides a flexible and efficient approach to querying and manipulating data over the internet.
+One of the problems with REST endpoints is often a given URI doesn’t include exactly what a client needs. The response may contain not enough information, thus requiring follow-up requests from other resources, or possibly too much information, unnecessarily increasing the payload size.</p>
+
+<p>GraphQL allows a client to specify only exactly what it requires from a single endpoint. Take the Library Service for example. A Book resource may have many properties associated with it which most clients aren’t necessarily concerned with. Instead of requesting the entire Book resource (or list of resources) the client can query just the book title and author. The server will return only the values the client requests.</p>
+
+<p>GraphQL APIs can also be used a an API Gateway for multiple web servers.</p>
+
+<p>Resources exposed by GraphQL services are defined in a Schema Definition Language (SDL). Similar to a SOAP’s wsdl files (but more consise), this schema defines the types, fields, relationships, an operations supported by a given API and serves as the contract between a client and server.</p>
+
+<p><a href="https://codesandbox.io/p/sandbox/2023-05-27-graphql-api-example-1dw1fk">See here</a> for the same example api, but this time using GraphQL.</p>
+
+<h1 id="grpc">gRPC</h1>
+
+<p>Google Remote Procedure Call, developed by Google and now maintained by the Cloud Native Computing Foundation, is an open-source, highly performant, lightweight messaging protocol for communicating between web services. With gRPC, a client can directly call a method on a server as if it were a local method.</p>
+
+<p>This protocol is based around the concept of defining a shared API interface which describes the operations available on a given server, and the messages that can be exchanged between the client and server. Unlike in SOAP, which uses XML as its Shared Definition Language (IDL), gRPC uses a <a href="https://protobuf.dev/">protocol buffers</a> as its IDL, resulting in much simpler contracts.</p>
+
+<p>As gRPC relies on HTTP/2 as its transport layer it is able to parse data in binary format which is more light-weight than JSON and XML.</p>
+
+<p>gRPC also supports bidirectional streaming wherein both the client and server send a sequence of messages using a read-write stream.</p>
+
+<p>Before you run away to add gRPC layers to all your APIs, it should be worth noting that HTTP/2 is not supported by most modern browsers, so this protocol is best suited between system-system communication.</p>
+
+<p>Finally, <a href="https://codesandbox.io/p/sandbox/2023-05-27-grpc-example-dbmwpc">see here</a> for the same example api with a gRPC interface.</p>
+
+<h1 id="summary">Summary</h1>
+
+<p>This was just an introduction to some current and emerging web service messaging protocols you will likely encounter throughout your career.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>_</th>
+      <th>Pros</th>
+      <th>Cons</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>SOAP</td>
+      <td>* Supports Message Level Security<br />* Widely supported <br />* Structured interfaces * Transport layer independent <br /></td>
+      <td>* Heavy-weight messages <br />* Complex to configure</td>
+    </tr>
+    <tr>
+      <td>REST</td>
+      <td>* Simple protocol built on widely adopted standards <br />* Supports response caching <br /></td>
+      <td>* Limited realtime communication support <br />* Not suited for complex or hierarchical data structures</td>
+    </tr>
+    <tr>
+      <td>GraphQL</td>
+      <td>* flexible data fetching, no over/under fetching<br />* Introspection enables clients to explore api schema</td>
+      <td>* Lack of standardized caching and authn</td>
+    </tr>
+    <tr>
+      <td>gRPC</td>
+      <td>* Highly performant <br />* Strong client/server contracts <br />* supports bidirectional streaming</td>
+      <td>* Limited browser support</td>
+    </tr>
+  </tbody>
+</table>
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">
+            Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance
+          </a>
+          <small><time datetime="2024-08-07T08:00:00+00:00">07 Aug 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>

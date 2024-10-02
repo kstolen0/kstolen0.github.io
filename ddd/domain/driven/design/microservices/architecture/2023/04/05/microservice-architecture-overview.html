@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>An Introduction to Microservice Architectures | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="An Introduction to Microservice Architectures" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Microservices are all the rage at the moment. This article describes the topology of a microservice architecture and reviews their pros and cons." />
+<meta property="og:description" content="Microservices are all the rage at the moment. This article describes the topology of a microservice architecture and reviews their pros and cons." />
+<link rel="canonical" href="https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html" />
+<meta property="og:url" content="https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-04-05T08:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="An Introduction to Microservice Architectures" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-04-05T08:00:00+00:00","datePublished":"2023-04-05T08:00:00+00:00","description":"Microservices are all the rage at the moment. This article describes the topology of a microservice architecture and reviews their pros and cons.","headline":"An Introduction to Microservice Architectures","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html"},"url":"https://kristianstolen.com/ddd/domain/driven/design/microservices/architecture/2023/04/05/microservice-architecture-overview.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">An Introduction to Microservice Architectures</h1>
+  <div class="post-meta">
+    <time datetime="2023-04-05T08:00:00+00:00" itemprop="datePublished">
+      05 Apr 2023
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">ddd</span></li><li>
+              <span class="post-category">domain</span></li><li>
+              <span class="post-category">driven</span></li><li>
+              <span class="post-category">design</span></li><li>
+              <span class="post-category">microservices</span></li><li>
+              <span class="post-category">architecture</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <p>The microservice architectural style is heavily influenced by Domain Driven Design (DDD), in particular, the concept of a Bounded Context. A bounded context is the domain in which a system is built. This system may contain many entities and behaviours implemented in the form of code and database schemas which would be coupled together. Within a bounded context, these internal models (e.g. database schema) are never coupled to anything outside the bounded context. This allows a context to only define what it needs and not accommodate other contexts.</p>
+
+<p>The primary goal of a microservice architecture is low coupling.</p>
+
+<h1 id="microservice-topology">Microservice topology</h1>
+
+<p><img src="/assets/2023-04-02-microservices/microservice-topology.PNG" alt="microservice topology" /></p>
+
+<p>As the name suggests, a service size in a microservice architecture is much smaller than other distributed architectures. Each service should include all the necessary parts to operate independently. Other characteristics can be describes as follows:</p>
+
+<h2 id="distributed">Distributed</h2>
+
+<p>Microservices form a distributed architecture, meaning each service runs in its own process. These processes could be virtual machines, containers, or even individual physical hardware. This reduces the operational overhead of shared, multitenant infrastructure which can become an overly complex bottleneck for applications as they scale.</p>
+
+<p>Performance can be a negative quality of distributed architectures due to more network calls as well as security verifications at each api endpoint.</p>
+
+<h2 id="bounded-context">Bounded Context</h2>
+
+<p>The bounded context is the driving philosophy of microservices; Each service modals a single domain. Therefore, each service should include everything necessary to operate within the application. By contrast, in a monolith architecture, many domains of the service may share common classes, e,g, Customer. This couples those domains together. Within a microservice architecture, coupling is avoided and instead each service would define its own Customer class.
+Microservices can be considered the implementation of the logical concepts in Domain Driven Design.</p>
+
+<h2 id="granularity">Granularity</h2>
+
+<p>It is important not to focus on creating the smallest possible service but to instead define the granularity of a single service. The purpose of the service boundary is to capture a domain or workflow, these boundaries might not always be so “small”. Below are some guidelines to help define the granularity of a bounded context.</p>
+
+<h3 id="define-the-purpose">Define the purpose</h3>
+<p>What is the inspiration for the service boundary?</p>
+
+<h3 id="identify-transactions">Identify transactions</h3>
+<p>Identifying entities that need to cooperate in a transaction may help identify a service boundary. It is best to avoid transactions across distributed systems as these can introduce additional complexity.</p>
+
+<h3 id="choreographed-services">Choreographed services</h3>
+<p>If a collection of services require extensive communication to function, it may be worth bundling these services into a single service.</p>
+
+<h2 id="data-isolation">Data Isolation</h2>
+<p>Many architectural styles may share a single database between services. However, given the emphasis on low coupling in microservices, this activity is highly discouraged. This provides flexibility for teams. Services aren’t forced to use a particular tool, each service and can use the most appropriate tool for data storage.</p>
+
+<h2 id="api-layer">API Layer</h2>
+<p>An API layer is an optional feature in microservice architectures however it does offer a good location to perform useful tasks, such as defining a proxy, or to tie into operational facilities. It can also enable the flexibility of the architecture, as services can be added and removed without affecting the external interface. This layer should not be used as a mediator or orchestration tool. Those processes belong within the bounded context.</p>
+
+<h2 id="operational-re-use">Operational Re-use</h2>
+<p>While the microservice approach prefers duplication over coupling, there are common architectural elements that do benefit from coupling overall such as monitoring and logging. While some architectural styles emphases reuse of everything, microservices decouple domain concerns, but may still get value from coupling operational concerns.</p>
+
+<p>The sidecar pattern allows coupling of operations while decoupling domain concerns. With this pattern all operational concerns exist inside each service as a distinct component. When it comes time to update the monitoring tooling, the component can be updated and all microservices get the new functionality.</p>
+
+<h1 id="pros-and-cons">Pros and Cons</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Pros</th>
+      <th>Cons</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Scalability - Within a microservice architecture, each domain can be scaled independently</td>
+      <td>Complexity - Microservice architectures can be more complex to design and develop as it involves managing multiple interconnected domains</td>
+    </tr>
+    <tr>
+      <td>Resilience - If one service fails, other services will still be available</td>
+      <td>Performance - Communication between domains requires calls over the network instead of within a single system</td>
+    </tr>
+    <tr>
+      <td>Faster deployments - builds and deployments can be isolated between domains</td>
+      <td> </td>
+    </tr>
+    <tr>
+      <td>Testability - domains can be tested in isolation resulting in simpler tests</td>
+      <td> </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>For more information on microservices and software architecture check out these resources:</p>
+
+<p><a href="https://martinfowler.com/articles/microservices.html">https://martinfowler.com/articles/microservices.html</a></p>
+
+<p><a href="https://www.oreilly.com/library/view/fundamentals-of-software/9781492043447/">https://www.oreilly.com/library/view/fundamentals-of-software/9781492043447/</a></p>
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">
+            Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance
+          </a>
+          <small><time datetime="2024-08-07T08:00:00+00:00">07 Aug 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>

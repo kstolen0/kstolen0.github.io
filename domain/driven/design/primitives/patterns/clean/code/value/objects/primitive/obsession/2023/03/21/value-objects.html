@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>The Value of Value Objects | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="The Value of Value Objects" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Learn how to implement your Ubiquitous Language as Value Objects to help keep your codebase simple and reduce the risk of bugs." />
+<meta property="og:description" content="Learn how to implement your Ubiquitous Language as Value Objects to help keep your codebase simple and reduce the risk of bugs." />
+<link rel="canonical" href="https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html" />
+<meta property="og:url" content="https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-03-21T08:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="The Value of Value Objects" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-03-21T08:00:00+00:00","datePublished":"2023-03-21T08:00:00+00:00","description":"Learn how to implement your Ubiquitous Language as Value Objects to help keep your codebase simple and reduce the risk of bugs.","headline":"The Value of Value Objects","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html"},"url":"https://kristianstolen.com/domain/driven/design/primitives/patterns/clean/code/value/objects/primitive/obsession/2023/03/21/value-objects.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">The Value of Value Objects</h1>
+  <div class="post-meta">
+    <time datetime="2023-03-21T08:00:00+00:00" itemprop="datePublished">
+      21 Mar 2023
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">domain</span></li><li>
+              <span class="post-category">driven</span></li><li>
+              <span class="post-category">design</span></li><li>
+              <span class="post-category">primitives</span></li><li>
+              <span class="post-category">patterns</span></li><li>
+              <span class="post-category">clean</span></li><li>
+              <span class="post-category">code</span></li><li>
+              <span class="post-category">value</span></li><li>
+              <span class="post-category">objects</span></li><li>
+              <span class="post-category">primitive</span></li><li>
+              <span class="post-category">obsession</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <p><img src="/assets/2023-03-21-value-objects/d%20d%20d.PNG" alt="this is a Domain Driven Design thing" /></p>
+
+<p>Does this scenario sound familiar to you? You’re writing an api in Kotlin that accepts a customer id and a message to send to the customer.
+You validate the fields as they enter the api then write the function to send the message to the customer with the signature:</p>
+
+<p><code class="language-plaintext highlighter-rouge">fun sendMessageToCustomer(message: String, customerId: String): Unit { ...</code></p>
+
+<p>Now, for reasons decided a long time ago a valid customer id has the format of 4 lowercase letters followed by 6 numeric values. And the message cannot be empty. You’ve already validated the values as they entered the api, but do you need validate them again within this method, or the methods these are passed to? 
+In some cases you might. You might even have a validation library that’s used by all your customer apis for validating the id to ensure the validation rules don’t drift (except for within that one service).</p>
+
+<p>Then as the consumer of this method, was the signature</p>
+
+<p><code class="language-plaintext highlighter-rouge">sendMessageToCustomer(customerId, message)</code> or<br />
+<code class="language-plaintext highlighter-rouge">sendMessageToCustomer(message, customerId)</code></p>
+
+<p>Both will compile fine. You’d better add validation somewhere to ensure that something breaks if the wrong properties are used (Or if using an OO language, maybe restructure to something like <code class="language-plaintext highlighter-rouge">customer.sendMessage(message)</code>).</p>
+
+<h1 id="introducing-value-objects">Introducing Value Objects</h1>
+
+<p>Alternatively, your could introduce some value objects. These replace primitive types as the building blocks of your domain. 
+This is very straight forward in Kotlin through the use of data classes.</p>
+
+<figure class="highlight"><pre><code class="language-kotlin" data-lang="kotlin"><span class="kd">data class</span> <span class="nc">CustomerId</span><span class="p">(</span><span class="kd">val</span> <span class="py">value</span><span class="p">:</span> <span class="nc">String</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nf">init</span> <span class="p">{</span>
+        <span class="kd">val</span> <span class="py">tester</span> <span class="p">=</span> <span class="nc">Regex</span><span class="p">(</span><span class="s">"^[a-z]{4}\\d{6}$"</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="p">(!</span><span class="n">tester</span><span class="p">.</span><span class="nf">containsMatchIn</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="nc">InvalidCustomerIdException</span><span class="p">(</span><span class="s">"Invalid customer id format: ${value})
+</span>        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kd">data class</span> <span class="nc">Message</span><span class="p">(</span><span class="kd">val</span> <span class="py">value</span><span class="p">:</span> <span class="nc">String</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nf">init</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">value</span><span class="p">.</span><span class="nf">count</span><span class="p">()</span> <span class="p">&lt;</span> <span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">throw</span> <span class="nc">InvalidMessageException</span><span class="p">(</span><span class="s">"Message must be at least 1 character long"</span><span class="p">)</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span></code></pre></figure>
+
+<p>We can now update our function signature to:<br />
+<code class="language-plaintext highlighter-rouge">sendMessageToCustomer(message: Message, customer: CustomerId)</code></p>
+
+<p>Now these properties can be used in place of strings for any function parameter that expects a customer id or a message and the function can be certain the values are correct as the validation is part the object.</p>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>Value objects can be an effective way to reduce ambiguity and duplication within domain code as well as emphasizing use of the ubiquitous language within your domain. The next time you find yourself representing a core concept of your domain as a String or Int or Boolean, consider defining a value object instead.</p>
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">
+            Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance
+          </a>
+          <small><time datetime="2024-08-07T08:00:00+00:00">07 Aug 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>

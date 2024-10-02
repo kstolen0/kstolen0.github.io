@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this first post we will create an EC2 instance to host our web service in AWS using Terraform" />
+<meta property="og:description" content="In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this first post we will create an EC2 instance to host our web service in AWS using Terraform" />
+<link rel="canonical" href="https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html" />
+<meta property="og:url" content="https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-08-07T08:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-08-07T08:00:00+00:00","datePublished":"2024-08-07T08:00:00+00:00","description":"In this multi-part blog series we will learn how to create a modern enterprise ready web service in AWS using Terraform. In this first post we will create an EC2 instance to host our web service in AWS using Terraform","headline":"Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html"},"url":"https://kristianstolen.com/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance</h1>
+  <div class="post-meta">
+    <time datetime="2024-08-07T08:00:00+00:00" itemprop="datePublished">
+      07 Aug 2024
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">aws</span></li><li>
+              <span class="post-category">Terraform</span></li><li>
+              <span class="post-category">infratructure</span></li><li>
+              <span class="post-category">IaC</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <h1 id="introduction">Introduction</h1>
+
+<p>In this series of blog posts, we will build an enterprise scale web infrastructure.</p>
+
+<p>Starting small with a simple virtual machine image, iterating as our needs develop until eventually we will have a highly available, secure, and resilient web infrastructure capable of meeting the needs of tens of customers!</p>
+
+<p>All of this will be managed with the popular Infrastructure As Code tool, Terraform.</p>
+
+<p>In this first post, we will:</p>
+<ol>
+  <li>Configure Terraform with a pre-existing AWS account</li>
+  <li>Deploy an EC2 instance to AWS</li>
+  <li>Allow incoming connections to the EC2 instance from our local device</li>
+  <li>SSH into our EC2 instance using a ssh key pair</li>
+</ol>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>It would be helpful for you to have some familiarity with the following concepts/tools:</p>
+<ul>
+  <li>What <a href="https://aws.amazon.com/what-is/iac/">Infrastructure as Code</a> (IaC) is and some IaC tools (e.g. Terraform, Pulumi, CloudFormation)</li>
+  <li>What a <a href="https://azure.microsoft.com/en-au/resources/cloud-computing-dictionary/what-is-a-cloud-provider">cloud service provider</a> is (e.g. AWS, Google Cloud, Azure)</li>
+  <li>Familiarity with using the terminal</li>
+</ul>
+
+<p>Before we start building, you’ll want to have setup a couple things:</p>
+
+<ol>
+  <li>Have an <a href="https://aws.amazon.com/free/">AWS Account</a> setup</li>
+  <li>Installed <a href="https://developer.hashicorp.com/terraform/install?product_intent=terraform">Terraform cli</a></li>
+  <li>An IDE or text editor of your preference (I use Neovim, btw)</li>
+</ol>
+
+<h2 id="step-0---create-a-directory-for-your-project">Step 0 - Create a directory for your project</h2>
+
+<p>As we’ll be building our infrastructure using Terraform, we’ll need somewhere to write this code.
+Let’s create a directory called <code class="language-plaintext highlighter-rouge">my-unicorn-project</code> and inside that directory create another directory called <code class="language-plaintext highlighter-rouge">infra</code>.</p>
+
+<h2 id="step-1---define-our-terraform-provider">Step 1 - Define our Terraform provider</h2>
+
+<p>Now we will create our <code class="language-plaintext highlighter-rouge">main.tf</code> file inside our <code class="language-plaintext highlighter-rouge">infra</code> directory where we will define our cloud provider.</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># /infra/main.tf</span>
+
+<span class="k">terraform</span> <span class="p">{</span>
+  <span class="nx">required_version</span> <span class="p">=</span> <span class="s2">"&gt;= 1.2.0"</span>
+  <span class="nx">required_providers</span> <span class="p">{</span>
+    <span class="nx">aws</span> <span class="p">=</span> <span class="p">{</span>
+            <span class="nx">source</span> <span class="p">=</span> <span class="s2">"hashicorp/aws"</span>
+            <span class="nx">version</span> <span class="p">=</span> <span class="s2">"&gt;= 5.41.0"</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Open a terminal in the <code class="language-plaintext highlighter-rouge">infra</code> directory and run <a href="https://developer.hashicorp.com/terraform/cli/commands/init">terraform init</a>. Terraform will download the required provider modules so they can be used to configure our services.</p>
+
+<h2 id="step-2---create-an-aws-ec2-instance">Step 2 - Create an AWS EC2 instance</h2>
+
+<p>Now we have successfully initialized Terraform with the AWS provider we can define AWS resources in our code. In this step we will create three things:</p>
+<ol>
+  <li>An AWS <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html">EC2 instance</a> resource</li>
+  <li>An AWS <a href="https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AMIs.html">Amazon Machine Image</a> (ami) data reference for EC2 to run</li>
+  <li>A <a href="https://developer.hashicorp.com/terraform/language/values/outputs">Terraform output</a> to return the public ip address for the created EC2 instance so we can easily connect to it</li>
+</ol>
+
+<p>Create a new file called <code class="language-plaintext highlighter-rouge">unicorn-api.tf</code>.<br />
+Inside the file, add:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># /infra/unicorn-api.tf</span>
+
+<span class="k">data</span> <span class="s2">"aws_ami"</span> <span class="s2">"amazon_x86_image"</span> <span class="p">{</span>
+    <span class="nx">most_recent</span> <span class="p">=</span> <span class="kc">true</span>
+    <span class="nx">owners</span> <span class="p">=</span> <span class="p">[</span><span class="s2">"amazon"</span><span class="p">]</span>
+    <span class="nx">name_regex</span> <span class="p">=</span> <span class="s2">"^al2023-ami-ecs.*"</span>
+
+    <span class="nx">filter</span> <span class="p">{</span>
+        <span class="nx">name</span> <span class="p">=</span> <span class="s2">"architecure"</span>
+        <span class="nx">values</span> <span class="p">=</span> <span class="p">[</span><span class="s2">"x86_64"</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">resource</span> <span class="s2">"aws_instance"</span> <span class="s2">"unicorn_vm"</span> <span class="p">{</span>
+    <span class="nx">ami</span> <span class="p">=</span> <span class="k">data</span><span class="p">.</span><span class="nx">aws_ami</span><span class="p">.</span><span class="nx">amazon_x86_image</span><span class="p">.</span><span class="nx">id</span>
+    <span class="nx">instance_type</span> <span class="p">=</span> <span class="s2">"t2.micro"</span>
+
+    <span class="nx">tags</span> <span class="p">=</span> <span class="p">{</span>
+        <span class="nx">Name</span> <span class="p">=</span> <span class="s2">"Unicorn"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="k">output</span> <span class="s2">"unicorn_vm_public_ip"</span> <span class="p">{</span>
+  <span class="nx">description</span> <span class="p">=</span> <span class="s2">"Public IP address of the unicorn vm"</span>
+  <span class="nx">value</span> <span class="p">=</span> <span class="nx">aws_instance</span><span class="p">.</span><span class="nx">unicorn_vm</span><span class="p">.</span><span class="nx">public_ip</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>In this file We’ve defined an AWS EC2 <a href="https://developer.hashicorp.com/terraform/language/resources">resource</a> and attached an AWS AMI <a href="https://developer.hashicorp.com/terraform/language/data-sources">data source</a> with an x86 architecture and has docker pre-installed on the image to install onto the EC2 instance.</p>
+
+<p>We’ve also defined an <a href="https://developer.hashicorp.com/terraform/language/values/outputs">output</a> which returns the EC2 instance’s public ip address. We’ll need this later.</p>
+
+<p>Now when you open the terminal and run <a href="https://developer.hashicorp.com/terraform/cli/commands/plan">terraform plan</a> to review the proposed changes prior to applying them.</p>
+
+<p>It fails! But why?</p>
+
+<p>Even though we’ve created an AWS account, and downloaded Terraform, and the AWS provider for Terraform to use, we still need Terraform to authenticate with AWS in order to create these resources.</p>
+
+<h2 id="step-21---create-an-aws-api-key-for-terraform">Step 2.1 - Create an AWS API Key for Terraform</h2>
+
+<p>In order for Terraform to manage resources in AWS it needs access to your AWS account. We can accomplish this by creating credentials specifically for this project and configuring Terraform to use those credentials to create and manage resources.</p>
+
+<p>Create a new file called <code class="language-plaintext highlighter-rouge">aws-provider-key.tf</code> and add the following content:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># /infra/aws-provider-key.tf</span>
+
+<span class="k">provider</span> <span class="s2">"aws"</span> <span class="p">{</span>
+    <span class="nx">access_key</span> <span class="p">=</span> <span class="s2">""</span>
+    <span class="nx">secret_key</span> <span class="p">=</span> <span class="s2">""</span>
+    <span class="nx">region</span> <span class="p">=</span> <span class="s2">"ap-southeast-2"</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>You can select a region closer to you. As I’m in Australia I’m opting to use the Australian region. <a href="https://aws.amazon.com/about-aws/global-infrastructure/regions_az/">See here</a> to find out what other regions AWS have available and pick the one closest to you.</p>
+
+<p>Next you need to create two things in the AWS Management Console:</p>
+<ol>
+  <li>Create a <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_create.html">new User</a> with administrator permission</li>
+  <li>Create an <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html">access key</a> for the user</li>
+</ol>
+
+<blockquote>
+  <p>Note, giving users more access than they require (such as admin access) is not good practice. Users should only ever be given the mininum level of access in order to complete a task. I’ll leave it as an exercise to the reader to find out the minimum required roles should be for this user. For more information about the principle of least privilege, <a href="https://www.cyberark.com/what-is/least-privilege/">see here</a>.</p>
+</blockquote>
+
+<p>Take the access key and corresponding secret key and add them to your provider key you defined earlier.</p>
+
+<blockquote>
+  <p>These API keys should be treated like credentials. Do not commit this file to source control. Otherwise the key could be discovered and you’ll need to replace them.</p>
+</blockquote>
+
+<p>Now try running <code class="language-plaintext highlighter-rouge">terraform plan</code> once more. Your output should look something like this:</p>
+
+<p><img src="/assets/getting-started-with-aws-tf-01/example-plan.png" alt="output from the Terraform plan command" /></p>
+
+<p>Now run <a href="https://developer.hashicorp.com/terraform/cli/commands/apply">terraform apply</a> to deploy this EC2 resource to AWS.</p>
+
+<h2 id="step-3---connect-to-our-ec2-instance">Step 3 - Connect to our EC2 Instance</h2>
+
+<p>If you’ve made it this far it means you’ve successfully configured Terraform with an AWS account and have deployed an EC2 instance to AWS. Nice!</p>
+
+<p>Let’s try connect to this instance.</p>
+
+<p>You can see the public ip address of the as one of the outputs from the apply step. Alternatively, you can also run <a href="https://developer.hashicorp.com/terraform/cli/commands/output">terraform output</a> to print all the outputs from the project.</p>
+
+<p>Copy the IP address and in a terminal run <code class="language-plaintext highlighter-rouge">ping &lt;the-ip-address&gt;</code>.</p>
+
+<p>No response…</p>
+
+<p>This is because when we define the EC2 instance, a default <a href="https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html">security group</a> is applied to it. This security group allows incoming connections on any port using any protocol but only from other AWS resources within the same security group…</p>
+
+<p>If we want to connect to our instance, we need to make our own rules.</p>
+
+<p>We don’t want just anyone to connect to this service so for now we’ll only allow our local device’s public ip address in the address range. You can find this easily using a site like <a href="https://www.whatismyipaddress.com">whatismyipaddress.com</a>.</p>
+
+<p>Open <code class="language-plaintext highlighter-rouge">unicon-api.tf</code> and add the following resources, providing your public ip for <code class="language-plaintext highlighter-rouge">cidr_ipv4</code> value:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># /infra/unicorn-api.tf</span>
+
+<span class="k">resource</span> <span class="s2">"aws_security_group"</span> <span class="s2">"unicorn_api_security_group"</span> <span class="p">{</span>
+  <span class="nx">name</span> <span class="p">=</span> <span class="s2">"unicorn-api-security-group"</span>
+<span class="p">}</span>
+
+<span class="k">resource</span> <span class="s2">"aws_vpc_security_group_ingress_rule"</span> <span class="s2">"allow_from_local_device"</span> <span class="p">{</span>
+  <span class="nx">security_group_id</span> <span class="p">=</span> <span class="nx">aws_security_group</span><span class="p">.</span><span class="nx">unicorn_api_security_group</span><span class="p">.</span><span class="nx">id</span>
+  <span class="nx">description</span>       <span class="p">=</span> <span class="s2">"allow ingress on any port from any ip"</span>
+  <span class="nx">cidr_ipv4</span>         <span class="p">=</span> <span class="s2">"&lt;YOUR_IP_ADDRESS_HERE&gt;/32"</span>
+  <span class="nx">ip_protocol</span>       <span class="p">=</span> <span class="err">-</span><span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>This rule allows an incoming connection on any port using any protocol but only from the defined ip address range.</p>
+
+<p>Next, apply the security group to the EC2 instance, adding the following property to the EC2 instance:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># /infra/unicorn-api.tf</span>
+
+<span class="k">resource</span> <span class="s2">"aws_instance"</span> <span class="s2">"unicorn_vm"</span> <span class="p">{</span>
+
+    <span class="c1"># ...</span>
+
+  <span class="nx">vpc_security_group_ids</span> <span class="p">=</span> <span class="p">[</span><span class="nx">aws_security_group</span><span class="p">.</span><span class="nx">unicorn_api_security_group</span><span class="p">.</span><span class="nx">id</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>With these new resources defined, we can re-apply our changes with <code class="language-plaintext highlighter-rouge">terraform apply</code>. This will rebuild the EC2 instance, so we’ll need to get the latest ip address to ping it.</p>
+
+<p>Once the resources have been updated and the latest IP address copied, we can now ping our EC2 instance with:</p>
+
+<p><code class="language-plaintext highlighter-rouge">ping &lt;the-ip-address&gt;</code></p>
+
+<p><img src="/assets/getting-started-with-aws-tf-01/example-ping.png" alt="output from successfully applying the Terraform config and pinging the vm" /></p>
+
+<h2 id="step-4---ssh-into-the-ec2-instance">Step 4 - SSH into the EC2 Instance</h2>
+
+<p>Before we move on it’s good practice when experimenting with Terraform and public cloud resources to not leave those resources active otherwise you might run up a surprising bill.</p>
+
+<p>What we’ve created so far isn’t so expensive but to get used to the habit let’s quickly destroy these resources by running <a href="https://developer.hashicorp.com/terraform/cli/commands/destroy">terraform destroy</a>.</p>
+
+<hr />
+
+<p>In this step we’re going to create an ssh key pair using Terraform. The public key will be added to the EC2 instance as one of its known ssh public keys.</p>
+
+<p>We’ll save the private key as a local file so we can reference it when we try connect to the EC2 instance.</p>
+
+<p>First, add the following providers to our <code class="language-plaintext highlighter-rouge">main.tf</code>:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># infra/main.tf</span>
+
+<span class="nx">required_providers</span> <span class="p">{</span>
+
+    <span class="c1"># ...</span>
+
+    <span class="nx">tls</span> <span class="p">=</span> <span class="p">{</span>
+          <span class="nx">source</span>  <span class="p">=</span> <span class="s2">"hashicorp/tls"</span>
+          <span class="nx">version</span> <span class="p">=</span> <span class="s2">"~&gt; 4.0.4"</span>
+        <span class="p">}</span>
+
+    <span class="kd">local</span> <span class="p">=</span> <span class="p">{</span>
+      <span class="nx">source</span>  <span class="p">=</span> <span class="s2">"hashicorp/local"</span>
+      <span class="nx">version</span> <span class="p">=</span> <span class="s2">"2.4.1"</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Above we’re adding two new providers to our Terraform config:</p>
+<ul>
+  <li><a href="https://registry.terraform.io/providers/hashicorp/tls/latest/docs">tls</a>, which allows us to create TLS private keys and certificates</li>
+  <li><a href="https://registry.terraform.io/providers/hashicorp/local/latest/docs">local</a>, which allows us to manage local resources (such as creating new files) via Terraform</li>
+</ul>
+
+<p>Since we’ve added new providers, we need to run <code class="language-plaintext highlighter-rouge">terraform init</code> to download their modules.</p>
+
+<p>Create a new file named <code class="language-plaintext highlighter-rouge">ssh_key.tf</code> and add the following:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># infra/ssh_key.tf</span>
+
+<span class="c1"># create a tls key pair using rsa algorithm</span>
+<span class="k">resource</span> <span class="s2">"tls_private_key"</span> <span class="s2">"ssh_key"</span> <span class="p">{</span>
+    <span class="nx">algorithm</span> <span class="p">=</span> <span class="s2">"RSA"</span>
+    <span class="nx">rsa_bits</span> <span class="p">=</span> <span class="mi">4096</span>
+<span class="p">}</span>
+
+<span class="c1"># save the private key to a local file named "key.pem"</span>
+<span class="k">resource</span> <span class="s2">"local_file"</span> <span class="s2">"rsa_key"</span> <span class="p">{</span>
+    <span class="nx">content</span> <span class="p">=</span> <span class="nx">tls_private_key</span><span class="p">.</span><span class="nx">ssh_key</span><span class="p">.</span><span class="nx">private_key_openssh</span>
+    <span class="nx">filename</span> <span class="p">=</span> <span class="s2">"</span><span class="k">${</span><span class="nx">path</span><span class="p">.</span><span class="k">module}</span><span class="s2">/key.pem"</span>
+    <span class="nx">file_permission</span> <span class="p">=</span> <span class="s2">"0600"</span>
+<span class="p">}</span>
+
+<span class="c1"># define an AWS key pair, providing the public key from the tls key pair defined above</span>
+<span class="k">resource</span> <span class="s2">"aws_key_pair"</span> <span class="s2">"key_pair_for_ec2_instance"</span> <span class="p">{</span>
+    <span class="nx">key_name</span> <span class="p">=</span> <span class="s2">"ssh-key"</span>
+    <span class="nx">public_key</span> <span class="p">=</span> <span class="nx">tls_private_key</span><span class="p">.</span><span class="nx">ssh_key</span><span class="p">.</span><span class="nx">public_key_openssh</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<p>Above we’ve just:</p>
+<ol>
+  <li>Created a tls private key resource</li>
+  <li>Created a local file with the file name <code class="language-plaintext highlighter-rouge">key.pem</code> and added the ssh private key to its contents</li>
+  <li>An <a href="https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/key_pair">AWS key pair</a> resource which will register the ssh public key to our aws EC2 instance</li>
+</ol>
+
+<p>Now, add the key pair to our EC2 instance and while we’re at it, lets add the instance’s public dns name as an output for when we ssh into it:</p>
+
+<div class="language-terraform highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c1"># infra/unicorn-api.tf</span>
+
+<span class="k">resource</span> <span class="s2">"aws_instance"</span> <span class="s2">"web_service_vm"</span> <span class="p">{</span>
+
+    <span class="c1"># ...</span>
+
+  <span class="nx">key_name</span> <span class="p">=</span> <span class="nx">aws_key_pair</span><span class="p">.</span><span class="nx">key_pair_for_ec2_instance</span><span class="p">.</span><span class="nx">key_name</span>
+<span class="p">}</span>
+
+<span class="k">output</span> <span class="s2">"unicorn_vm_public_dns_name"</span> <span class="p">{</span>
+    <span class="nx">description</span> <span class="p">=</span> <span class="s2">"Public DNS name of the unicorn vm"</span>
+    <span class="nx">value</span> <span class="p">=</span> <span class="nx">aws_instance</span><span class="p">.</span><span class="nx">unicorn_vm</span><span class="p">.</span><span class="nx">public_dns</span>
+<span class="p">}</span>
+</code></pre></div></div>
+
+<blockquote>
+  <p>Note: As the name suggests, the tls private key should be treated like any other credentials and not be committed to version control. It should also be worth noting that when creating a private key in Terraform <a href="http://localhost:4000/aws/terraform/infratructure/iac/2024/05/17/get-started-with-aws-tf-01.html">the key is store unencrypted in the Terraform state backup file</a>. With this in mind, for this exercise I would suggest ignoring both <code class="language-plaintext highlighter-rouge">key.pem</code> and <code class="language-plaintext highlighter-rouge">terraform.tfstate.backup</code> from your version control. For production workloads, the key pair can be generated outside of Terraform, and only the public key shared.</p>
+</blockquote>
+
+<p>Now run <code class="language-plaintext highlighter-rouge">terraform apply</code>, copy the dns name output value and then in a console run:<br />
+<code class="language-plaintext highlighter-rouge">ssh ec2-user@&lt;EC2-DNS-NAME&gt; -i 'key.pem'</code>.</p>
+
+<p><img src="/assets/getting-started-with-aws-tf-01/example-ssh.png" alt="the output from successfuly sshing into an AWS hosted vm" />
+And voila! You’ve successfully:</p>
+<ul>
+  <li>Deployed a virtual machine instance to a public cloud environment</li>
+  <li>Confiured network security rules on the instance to accept incoming connections from only your device</li>
+  <li>Configured an ssh key pair for the instance and ssh’d onto the instance</li>
+  <li>Done it all in Terraform so these steps can be easily repeated with just a single command!</li>
+</ul>
+
+<p>Now again run <code class="language-plaintext highlighter-rouge">terraform destroy</code> so you don’t wake up in a month’s time with a shocking bill from AWS!</p>
+
+<p>In the next post we will update our EC2 instance to build and run a web server that can be accessed from any web browser.</p>
+
+<p><a href="https://github.com/kstolen0/getting-started-with-aws-tf/tree/post-1">See here</a> for the final code output from this post.</p>
+
+<h2 id="bonus-step">Bonus Step!</h2>
+
+<p>In order to both ping and ssh into our EC2 instance we created a custom security rule that allowed any kind of connection from our public ip address to the EC2 instance.</p>
+
+<p>However, in most cases we don’t want our rules to be this lose (remember the <a href="https://www.cyberark.com/what-is/least-privilege/">principle of least privilege</a>). How might you change your security group rule to only allow ssh connections to the instance?</p>
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html">
+            Create a NodeJS project with Typescript & Jest
+          </a>
+          <small><time datetime="2023-06-24T16:00:00+00:00">24 Jun 2023</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>

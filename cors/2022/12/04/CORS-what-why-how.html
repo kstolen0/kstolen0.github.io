@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>CORS… What? Why? How? | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="CORS… What? Why? How?" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Cross Origin Resource Sharing often catches web developers off-guard. Learn about What CORs is, Why it exists, and How to integrate it into your services." />
+<meta property="og:description" content="Cross Origin Resource Sharing often catches web developers off-guard. Learn about What CORs is, Why it exists, and How to integrate it into your services." />
+<link rel="canonical" href="https://kristianstolen.com/cors/2022/12/04/CORS-what-why-how.html" />
+<meta property="og:url" content="https://kristianstolen.com/cors/2022/12/04/CORS-what-why-how.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-12-04T08:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="CORS… What? Why? How?" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2022-12-04T08:00:00+00:00","datePublished":"2022-12-04T08:00:00+00:00","description":"Cross Origin Resource Sharing often catches web developers off-guard. Learn about What CORs is, Why it exists, and How to integrate it into your services.","headline":"CORS… What? Why? How?","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/cors/2022/12/04/CORS-what-why-how.html"},"url":"https://kristianstolen.com/cors/2022/12/04/CORS-what-why-how.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">CORS...  What? Why? How?</h1>
+  <div class="post-meta">
+    <time datetime="2022-12-04T08:00:00+00:00" itemprop="datePublished">
+      04 Dec 2022
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">CORS</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <h1 id="what-is-cors">What is CORS?</h1>
+
+<p>Cross Origin Resource Sharing (CORS) is a web standard created to allow servers to define which origins other than its own are allowed to access its resources. This allows web clients to make http requests to services hosted on different origins.</p>
+
+<h1 id="why-is-cors">Why is CORS?</h1>
+
+<p>By default, web browsers define a <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy">same-origin</a> policy that prevents client code requests to different origins. This is a critical security control that helps isolate potentially malicious web documents from accessing third party services. CORS was created to help work around this policy by enabling the server to define which origins can access it.</p>
+
+<h1 id="how-is-cors">How is CORS?</h1>
+
+<p>Let’s enable CORS for a cross-origin request between two locally running services. One service (our client) is running on <code class="language-plaintext highlighter-rouge">http://localhost:1111</code>, the other service (our api) is running on <code class="language-plaintext highlighter-rouge">http://localhost:2222</code>. Our api contains a single get endpoint <code class="language-plaintext highlighter-rouge">/hello</code> which when called responds with a 200 response code and a response body of <code class="language-plaintext highlighter-rouge">hello there!</code>. Our client page contains a title and a single <code class="language-plaintext highlighter-rouge">click me</code> button that when pressed, will make a get request to our api’s <code class="language-plaintext highlighter-rouge">/hello</code> endpoint and will print the response text to the console.</p>
+
+<ul class="tab" data-tab="d8d085e7-2fa5-451f-a6e0-da6b7e7c1a6f" data-name="startingcode">
+  
+      <li class="active">
+          <a href="#">client code </a>
+      </li>
+  
+      <li>
+          <a href="#">server code </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="d8d085e7-2fa5-451f-a6e0-da6b7e7c1a6f" data-name="startingcode">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-html" data-lang="html"><span class="cp">&lt;!DOCTYPE html&gt;</span>
+<span class="nt">&lt;head&gt;</span>
+<span class="nt">&lt;/head&gt;</span>
+<span class="nt">&lt;script&gt;</span>
+    <span class="kd">const</span> <span class="nx">btnClick</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="nx">fetch</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:2222/hello</span><span class="dl">'</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">response</span> <span class="o">=&gt;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">text</span><span class="p">())</span>
+            <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">data</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">));</span>
+    <span class="p">}</span>
+<span class="nt">&lt;/script&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;h1&gt;</span>A very useful website<span class="nt">&lt;/h1&gt;</span>
+    <span class="nt">&lt;button</span> <span class="na">onclick=</span><span class="s">"btnClick()"</span><span class="nt">&gt;</span>click me<span class="nt">&lt;/button&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>Given that this is a cross-origin request, when we press the <code class="language-plaintext highlighter-rouge">click me</code> button, instead of printing <code class="language-plaintext highlighter-rouge">hello there!</code> to the console, instead we see the following error message:</p>
+
+<p><img src="/assets/cors-error-no-header.PNG" alt="cross-origin error: no 'Access-Control-Allow-Origin' header" /></p>
+
+<p>The browser has detected a cross-origin request and in doing so checks for an <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Origin">Access-Control-Allow-Origin</a> response header in the server response. If one is not present then the server response is rejected. Given that this is a response header, we need to update our server to include this. This can be done by defining our own custom middleware, or by using the popular <a href="https://www.npmjs.com/package/cors">cors</a> library. I’ll include examples of using both:</p>
+
+<ul class="tab" data-tab="f4655970-cbd7-455c-a001-07d1c6e31a8e" data-name="addingcors">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="f4655970-cbd7-455c-a001-07d1c6e31a8e" data-name="addingcors">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">localhost:1111</span><span class="dl">'</span><span class="p">);</span>
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">cors</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">cors</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add cors</span>
+<span class="kd">const</span> <span class="nx">corsOptions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="dl">'</span><span class="s1">localhost:1111</span><span class="dl">'</span><span class="p">,</span>
+<span class="p">};</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">corsOptions</span><span class="p">));</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>When we restart our server with the above changes and try running our client code we should see this in our developer console:</p>
+
+<p><img src="/assets/cors-wrong-header-error.PNG" alt="cross-origin error: allowed origin not equal to supplied origin" /></p>
+
+<p>It seems we haven’t configured the correct allowed origin in our api. So what exactly is an ‘origin’?</p>
+
+<p><a href="https://developer.mozilla.org/en-US/docs/Glossary/Origin">mdn webdocs</a> defines an origin as:</p>
+<blockquote>
+  <p>Web content’s origin is defined by the scheme (protocol), hostname (domain), and port of the URL used to access it.</p>
+</blockquote>
+
+<p><img src="/assets/cors-url-origin.PNG" alt="the origin is composed of the protocol hostname and port of a url" /></p>
+
+<p>In our fix above, we only defined the hostname and port, not the protocol. Let’s update this once more to include the actual origin:</p>
+
+<ul class="tab" data-tab="4617eb45-e9f6-48cd-8ef0-cc2da74a713b" data-name="cors-valid-origin">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="4617eb45-e9f6-48cd-8ef0-cc2da74a713b" data-name="cors-valid-origin">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">);</span>
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span></code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">cors</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">cors</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add cors</span>
+<span class="kd">const</span> <span class="nx">corsOptions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">,</span>
+<span class="p">};</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">corsOptions</span><span class="p">));</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>Now when we restart our server once more and press the <code class="language-plaintext highlighter-rouge">click me</code> button on the client we will see the expected api response in our console log:</p>
+
+<p><img src="/assets/cors-valid-response.PNG" alt="valid cross-origin request" /></p>
+
+<h1 id="how-do-i-allow-requests-from-multiple-origins">How do I allow requests from multiple origins?</h1>
+
+<p>The <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Origin</code> header only accepts a single origin. If your api needs to be used by multiple clients on different origins you may need to add additional behavior in your cors middleware to enable this. We can update our cors middleware to accept requests from both <code class="language-plaintext highlighter-rouge">http://localhost:1111</code> and <code class="language-plaintext highlighter-rouge">http://localhost:1234</code>.</p>
+
+<ul class="tab" data-tab="7caa82e3-68c4-4169-a576-991c2298d89b" data-name="cors-multiple-origins">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="7caa82e3-68c4-4169-a576-991c2298d89b" data-name="cors-multiple-origins">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="kd">const</span> <span class="nx">allowedOrigins</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Set</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1234</span><span class="dl">'</span><span class="p">);</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="nx">origin</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">headers</span><span class="p">.</span><span class="nx">origin</span><span class="p">;</span>
+    <span class="c1">// if origin is one of the allowed origins</span>
+    <span class="c1">// set Access-Control-Allow-Origin header</span>
+    <span class="c1">// to the provided origin</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">allowedOrigins</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">origin</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="nx">origin</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">cors</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">cors</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="kd">const</span> <span class="nx">allowedOrigins</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Set</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1234</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">const</span> <span class="nx">corsOptions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="p">(</span><span class="nx">origin</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">allowedOrigins</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">origin</span><span class="p">))</span> <span class="p">{</span>
+            <span class="c1">// if origin is one of the allowed origins</span>
+            <span class="c1">// execute callback with null Error and the origin</span>
+            <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">origin</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="c1">// otherwise execute the callback with an Error</span>
+            <span class="nx">callback</span><span class="p">(</span><span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="dl">'</span><span class="s1">Not allowed by CORS</span><span class="dl">'</span><span class="p">));</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+<span class="p">};</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">corsOptions</span><span class="p">));</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>The two implementations above are similar, but how they handle an invalid origin slightly differs. In the custom middleware, we still accept and continue processing the request, whereas the cors library will throw an Error and we’ll stop processing the request. The client call will still fail in both cases, however the response status code would be 200 in the former case, and 500 in the latter case. Throwing an error would be the safer action in this case as this helps protect against CSRF attacks. CSRF is beyond the scope of this article.</p>
+
+<h2 id="side-effects-of-allowing-multiple-origins">Side effects of allowing multiple origins</h2>
+
+<p>A side-effect of allowing multiple origins is that the <code class="language-plaintext highlighter-rouge">Access-Control-Allowed-Origin</code> header may vary between requests which can cause caching issues.</p>
+
+<p><img src="/assets/cors-allow-origin-header-one.PNG" alt="allowed origin header in client on port 1111" /></p>
+
+<p><img src="/assets/cors-allow-origin-header-two.PNG" alt="allowed origin header in client on port 1234" /></p>
+
+<p>In order to protect against these issues, you should add the <code class="language-plaintext highlighter-rouge">Vary</code> response header with the value <code class="language-plaintext highlighter-rouge">Origin</code>. This instructs any proxy server to consider the <code class="language-plaintext highlighter-rouge">Origin</code> header in a request when deciding to use a cached response.</p>
+
+<ul class="tab" data-tab="19289424-e461-4bdd-a1b0-015c426cc8a5" data-name="cors-vary-header">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="19289424-e461-4bdd-a1b0-015c426cc8a5" data-name="cors-vary-header">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="kd">const</span> <span class="nx">allowedOrigins</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Set</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1234</span><span class="dl">'</span><span class="p">);</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="kd">const</span> <span class="nx">origin</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">headers</span><span class="p">.</span><span class="nx">origin</span><span class="p">;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">allowedOrigins</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">origin</span><span class="p">))</span> <span class="p">{</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="nx">origin</span><span class="p">);</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Vary</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">Origin</span><span class="dl">'</span><span class="p">);</span>
+    <span class="p">}</span>
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">cors</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">cors</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// cors adds the Origin to the Vary header by default</span>
+<span class="c1">// so no changes are needed</span>
+<span class="kd">const</span> <span class="nx">allowedOrigins</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Set</span><span class="p">()</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">add</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:1234</span><span class="dl">'</span><span class="p">);</span>
+<span class="kd">const</span> <span class="nx">corsOptions</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="p">(</span><span class="nx">origin</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nx">allowedOrigins</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">origin</span><span class="p">))</span> <span class="p">{</span>
+            <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">origin</span><span class="p">);</span>
+        <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+            <span class="nx">callback</span><span class="p">(</span><span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="dl">'</span><span class="s1">Not allowed by CORS</span><span class="dl">'</span><span class="p">));</span>
+        <span class="p">}</span>
+    <span class="p">},</span>
+<span class="p">};</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">corsOptions</span><span class="p">));</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<h1 id="how-do-i-allow-requests-from-any-origin">How do I allow requests from any origin?</h1>
+
+<p>In some cases you may be building a public api and want any website to be able to reach your service. This is much simpler than allowing only a sub-set of origins and doesn’t incur any caching side-effects. In our custom middleware, we just give <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Origin</code> the value <code class="language-plaintext highlighter-rouge">*</code>. In the cors library, we just don’t provide an origin in our cors options (we could also not define any options in this case as it’s an optional parameter).</p>
+
+<ul class="tab" data-tab="10a365a6-d404-4841-a07b-56dc912be1ea" data-name="cors-allow-all">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="10a365a6-d404-4841-a07b-56dc912be1ea" data-name="cors-allow-all">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="c1">// add middleware to handle cross-origin requests</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">*</span><span class="dl">'</span><span class="p">);</span>
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span></code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="k">import</span> <span class="nx">express</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">express</span><span class="dl">'</span><span class="p">;</span>
+<span class="k">import</span> <span class="nx">cors</span> <span class="k">from</span> <span class="dl">'</span><span class="s1">cors</span><span class="dl">'</span><span class="p">;</span>
+
+<span class="kd">const</span> <span class="nx">service</span> <span class="o">=</span> <span class="nx">express</span><span class="p">();</span>
+
+<span class="kd">const</span> <span class="nx">corsOptions</span> <span class="o">=</span> <span class="p">{};</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">corsOptions</span><span class="p">));</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="kd">get</span><span class="p">(</span><span class="dl">'</span><span class="s1">/hello</span><span class="dl">'</span><span class="p">,</span> <span class="p">(</span><span class="nx">_req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">send</span><span class="p">(</span><span class="dl">'</span><span class="s1">hello there!</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">})</span>
+
+<span class="nx">service</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">2222</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="dl">'</span><span class="s1">listening on port 2222</span><span class="dl">'</span><span class="p">);</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<h1 id="how-are-pre-flight-requests">How are Pre-flight Requests?</h1>
+
+<p>At some point in time your client requests might become complex enough that before sending the request, the browser will first send a <code class="language-plaintext highlighter-rouge">pre-flight</code> request to the server to see if the client request has an allowed method and headers prior to sending the actual request. For more information about what triggers the browser to send the preflight request, <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS#simple_requests">see here.</a></p>
+
+<figure class="highlight"><pre><code class="language-html" data-lang="html"><span class="cp">&lt;!DOCTYPE html&gt;</span>
+<span class="nt">&lt;head&gt;</span>
+<span class="nt">&lt;/head&gt;</span>
+<span class="nt">&lt;script&gt;</span>
+    <span class="kd">const</span> <span class="nx">btnClick</span> <span class="o">=</span> <span class="p">()</span> <span class="o">=&gt;</span> <span class="p">{</span>
+        <span class="kd">const</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="na">headers</span><span class="p">:</span> <span class="p">{</span>
+                <span class="dl">'</span><span class="s1">X-Correlation-Id</span><span class="dl">'</span><span class="p">:</span> <span class="dl">'</span><span class="s1">a guid</span><span class="dl">'</span>
+            <span class="p">},</span>
+        <span class="p">};</span>
+        <span class="nx">fetch</span><span class="p">(</span><span class="dl">'</span><span class="s1">http://localhost:2222/hello</span><span class="dl">'</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">response</span> <span class="o">=&gt;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">text</span><span class="p">())</span>
+            <span class="p">.</span><span class="nx">then</span><span class="p">(</span><span class="nx">data</span> <span class="o">=&gt;</span> <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">data</span><span class="p">));</span>
+    <span class="p">}</span>
+<span class="nt">&lt;/script&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;h1&gt;</span>A very useful website<span class="nt">&lt;/h1&gt;</span>
+    <span class="nt">&lt;button</span> <span class="na">onclick=</span><span class="s">"btnClick()"</span><span class="nt">&gt;</span>click me<span class="nt">&lt;/button&gt;</span>
+<span class="nt">&lt;/body&gt;</span></code></pre></figure>
+
+<p>Our client has been updated to also send a correlation id header in our api requests. Now when we try pressing the <code class="language-plaintext highlighter-rouge">click me</code> button we see the following:</p>
+
+<p><img src="/assets/cors-preflight-blocked.PNG" alt="cors preflight request blocked the post request" /></p>
+
+<p>We need to add the blocked header to our <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Headers</code> in our pre-flight response. From now on we’ll just show the relevant cors code that needs to be udpated.</p>
+
+<ul class="tab" data-tab="87a673b3-9517-42e4-8285-23ebe6fe1c06" data-name="cors-update-options">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="87a673b3-9517-42e4-8285-23ebe6fe1c06" data-name="cors-update-options">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">);</span>
+    <span class="kd">const</span> <span class="nx">method</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span> <span class="o">&amp;&amp;</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">.</span><span class="nx">toUpperCase</span> <span class="o">&amp;&amp;</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">method</span> <span class="o">===</span> <span class="dl">'</span><span class="s1">OPTIONS</span><span class="dl">'</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// set the custom allowed to be sent by the client</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Headers</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">X-Correlation-Id</span><span class="dl">'</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="kd">const</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">,</span>
+    <span class="na">allowedHeaders</span><span class="p">:</span> <span class="dl">'</span><span class="s1">content-type</span><span class="dl">'</span>
+<span class="p">}</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">options</span><span class="p">));</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>If you’re not sure what custom headers your clients might include and you don’t care what they are, the pre-flight request includes the request headers that will be used so you can update <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Headers</code> to the following:</p>
+
+<ul class="tab" data-tab="d9d59abf-2f5f-43ac-bd3a-7e0db8fbba77" data-name="cors-allow-all-headers">
+  
+      <li class="active">
+          <a href="#">custom middleware </a>
+      </li>
+  
+      <li>
+          <a href="#">cors library </a>
+      </li>
+  
+</ul>
+<ul class="tab-content" id="d9d59abf-2f5f-43ac-bd3a-7e0db8fbba77" data-name="cors-allow-all-headers">
+  
+      <li class="active">
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">((</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">=&gt;</span> <span class="p">{</span>
+    <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Origin</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">);</span>
+    <span class="kd">const</span> <span class="nx">method</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span> <span class="o">&amp;&amp;</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">.</span><span class="nx">toUpperCase</span> <span class="o">&amp;&amp;</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">();</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="nx">method</span> <span class="o">===</span> <span class="dl">'</span><span class="s1">OPTIONS</span><span class="dl">'</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">const</span> <span class="nx">requestHeaders</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">headers</span><span class="p">[</span><span class="dl">'</span><span class="s1">access-control-request-headers</span><span class="dl">'</span><span class="p">];</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Access-Control-Allow-Headers</span><span class="dl">'</span><span class="p">,</span> <span class="nx">requestHeaders</span><span class="p">);</span>
+
+        <span class="c1">// Vary Access-Control-Request-Headers to prevent cached responses</span>
+        <span class="nx">res</span><span class="p">.</span><span class="nx">setHeader</span><span class="p">(</span><span class="dl">'</span><span class="s1">Vary</span><span class="dl">'</span><span class="p">,</span> <span class="dl">'</span><span class="s1">Access-Control-Request-Headers</span><span class="dl">'</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="nx">next</span><span class="p">();</span>
+<span class="p">});</span>
+    </code></pre></figure>
+
+</li>
+  
+      <li>
+<figure class="highlight"><pre><code class="language-javascript" data-lang="javascript"><span class="c1">// at the time of writing, the cors library</span>
+<span class="c1">// copies 'access-control-request-headers' by default</span>
+<span class="c1">// so all headers are allowed</span>
+<span class="kd">const</span> <span class="nx">options</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="na">origin</span><span class="p">:</span> <span class="dl">'</span><span class="s1">http://localhost:1111</span><span class="dl">'</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="nx">service</span><span class="p">.</span><span class="nx">use</span><span class="p">(</span><span class="nx">cors</span><span class="p">(</span><span class="nx">options</span><span class="p">));</span>
+    </code></pre></figure>
+
+</li>
+  
+</ul>
+
+<p>The following headers may be used in preflight checks:</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>header</th>
+      <th>description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Access-Control-Allow-Origin</td>
+      <td>This header is also used in preflight requests</td>
+    </tr>
+    <tr>
+      <td>Access-Control-Allow-Credentials</td>
+      <td>Indicates whether the response can be shared the the request includes credentials</td>
+    </tr>
+    <tr>
+      <td>Access-Control-Allow-Methods</td>
+      <td>Indicates which methods are supported with cross-origin requests</td>
+    </tr>
+    <tr>
+      <td>Access-Control-Allow-Headers</td>
+      <td>Indicates which headers are supported with cross-origin requests</td>
+    </tr>
+    <tr>
+      <td>Access-Control-Max-Age</td>
+      <td>Indicates the number of seconds <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Methods</code> and <code class="language-plaintext highlighter-rouge">Access-Control-Allow-Headers</code> can be cached</td>
+    </tr>
+  </tbody>
+</table>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>That about covers the basics of CORS. Hopefully this shed some light on what CORS is, why it exists, and how to start making cross-origin requests to your apis.</p>
+
+<p>If you’re interested in learning more about CORS I would recommend <a href="https://www.manning.com/books/cors-in-action">this book</a> by Monsur Hossain which goes into great detail on how to effectively enable your services for cross-origin requests.</p>
+
+<script src="/assets/js/tabs.js"></script>
+
+<link rel="stylesheet" href="/assets/css/tabs.css" />
+
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">
+            Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance
+          </a>
+          <small><time datetime="2024-08-07T08:00:00+00:00">07 Aug 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>

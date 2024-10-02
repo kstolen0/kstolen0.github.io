@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/normalize.css">
+  <link rel="stylesheet" href="/assets/open-color.css">
+  <link rel="stylesheet" href="/assets/monophase/styles.css">
+  <link type="application/atom+xml" rel="alternate" href="https://kristianstolen.com/feed.xml" title="Stolen Ideas" />
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Create a NodeJS project with Typescript &amp; Jest | Stolen Ideas</title>
+<meta name="generator" content="Jekyll v3.9.2" />
+<meta property="og:title" content="Create a NodeJS project with Typescript &amp; Jest" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="The commands you need to get started with your TS NodeJS project plus some explanations about the project configuration." />
+<meta property="og:description" content="The commands you need to get started with your TS NodeJS project plus some explanations about the project configuration." />
+<link rel="canonical" href="https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html" />
+<meta property="og:url" content="https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html" />
+<meta property="og:site_name" content="Stolen Ideas" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2023-06-24T16:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Create a NodeJS project with Typescript &amp; Jest" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2023-06-24T16:00:00+00:00","datePublished":"2023-06-24T16:00:00+00:00","description":"The commands you need to get started with your TS NodeJS project plus some explanations about the project configuration.","headline":"Create a NodeJS project with Typescript &amp; Jest","mainEntityOfPage":{"@type":"WebPage","@id":"https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html"},"url":"https://kristianstolen.com/node/nodejs/typescript/jest/tsconfig/git/2023/06/24/node-ts-initialisation.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  <script async src="https://use.fontawesome.com/releases/v5.0.12/js/all.js"></script>
+  
+  
+
+</head>
+
+  <body>
+    <div class="container">
+      <header class="masthead">
+  <div class="masthead-title">
+    <a href="/" title="Home">Stolen Ideas</a>
+    <small class="tagline">Thoughts and learnings about software development</small>
+  </div>
+
+  
+</header>
+
+
+      <main>
+        <article class="post">
+  <h1 class="post-title">Create a NodeJS project with Typescript & Jest</h1>
+  <div class="post-meta">
+    <time datetime="2023-06-24T16:00:00+00:00" itemprop="datePublished">
+      24 Jun 2023
+    </time>
+      <span> • </span>
+      <span class="post-categories-section">
+        <i class="post-categories-icon fas fa-folder"></i>
+        <ul class="post-categories"><li>
+              <span class="post-category">node</span></li><li>
+              <span class="post-category">nodejs</span></li><li>
+              <span class="post-category">typescript</span></li><li>
+              <span class="post-category">jest</span></li><li>
+              <span class="post-category">tsconfig</span></li><li>
+              <span class="post-category">git</span></li></ul>
+      </span>
+    
+    
+  </div>
+
+  <p>Let’s just get the boring stuff out the way.</p>
+
+<p>Open a terminal and navigate to your project directory.</p>
+
+<p>Run the following two commands:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>npm init -y
+npm i -D typescript jest @types/jest ts-jest
+</code></pre></div></div>
+
+<p>Create a <code class="language-plaintext highlighter-rouge">tsconfig.json</code> file then add the following json config:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "target": "ES2022",
+        "outDir": "build",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true
+    },
+    "include": ["src/**/*.ts"],
+    "exclude": ["**/*.test.ts"]
+}
+</code></pre></div></div>
+
+<p>Open the <code class="language-plaintext highlighter-rouge">package.json</code> file.</p>
+
+<p>Replace the <code class="language-plaintext highlighter-rouge">main</code> value to <code class="language-plaintext highlighter-rouge">"main": "build/main.js",</code>.</p>
+
+<p>Replace <code class="language-plaintext highlighter-rouge">scripts</code> with:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>"scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "start": "node ."
+  },
+</code></pre></div></div>
+
+<p>Below <code class="language-plaintext highlighter-rouge">scripts</code> add your jest config:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>"jest": {
+    "preset": "ts-jest"
+  },
+</code></pre></div></div>
+
+<p>To run some typescript code, create a folder called <code class="language-plaintext highlighter-rouge">src</code> and add a file, <code class="language-plaintext highlighter-rouge">main.ts</code>.</p>
+
+<p>Within <code class="language-plaintext highlighter-rouge">main.ts</code> add the following code:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>function main(input: string) {
+    console.log(input);
+}
+
+main('hello world');
+</code></pre></div></div>
+
+<p>In your terminal run the following commands:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>npm run build
+npm run start
+</code></pre></div></div>
+
+<h1 id="youre-done">You’re done!</h1>
+
+<p>That’s pretty much it for standing up a NodeJS project with Typescript and Jest. Now you can begin writing the code you want to write.</p>
+
+<h1 id="bonus-setup---add-git-to-your-project">Bonus Setup - Add Git to your project</h1>
+
+<p>Run <code class="language-plaintext highlighter-rouge">git init</code> to create a local git repository in the current directory.</p>
+
+<p>Create a file, <code class="language-plaintext highlighter-rouge">.gitignore</code> and add the following config files:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>node_modules
+build
+</code></pre></div></div>
+
+<p>Run:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git add .
+git commit -m 'initial commit'
+</code></pre></div></div>
+
+<p>If you have a remote repo configured you can set it as your origin with:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>git remote add origin &lt;https://your/remote/repo.git&gt;
+</code></pre></div></div>
+
+<p>The push your changes with <code class="language-plaintext highlighter-rouge">git push origin main</code>.</p>
+
+<h1 id="an-explanation-of-the-above">An explanation of the above</h1>
+
+<h2 id="what-is-nodejs">What is NodeJS?</h2>
+
+<p>NodeJS is a runtime environment for javascript applications. The runtime is built on top of the Google Chrome V8 Javascript Engine. This engine compiles Javascript code to a lower-level language in order to make it more efficient. This enables the use of Javascript for writing web servers, which NodeJS is predominantly used for.</p>
+
+<h2 id="what-does-npm-init--y-do">What does npm init -y do?</h2>
+
+<p><code class="language-plaintext highlighter-rouge">npm init</code> is used to create a <code class="language-plaintext highlighter-rouge">package.json</code> file. This file contains metadata for a NodeJS project.<br />
+<code class="language-plaintext highlighter-rouge">-y</code> creates this file using all default properties. If <code class="language-plaintext highlighter-rouge">-y</code> is omitted, then the following prompts will be displayed while generating the file:</p>
+
+<ol>
+  <li><strong>package name</strong> - the name of the package/project. Default is the directory name</li>
+  <li><strong>version</strong> - the version number of the package. Default is <code class="language-plaintext highlighter-rouge">1.0.0</code></li>
+  <li><strong>description</strong> - A description of the package. Default is <code class="language-plaintext highlighter-rouge">""</code></li>
+  <li><strong>entry point</strong> - The entrypoint of the package. This is the value of the <code class="language-plaintext highlighter-rouge">main</code> attribute in the <code class="language-plaintext highlighter-rouge">package.json</code> file. Default is <code class="language-plaintext highlighter-rouge">index.js</code></li>
+  <li><strong>test command</strong> - This is the <code class="language-plaintext highlighter-rouge">test</code> script value. Default is <code class="language-plaintext highlighter-rouge">echo \"Error: no test specified\" &amp;&amp; exit 1</code></li>
+  <li><strong>git repository</strong> - The git repository of the package. Default is no entry</li>
+  <li><strong>keywords</strong> - Any keywords associated with the package. Default is no entry</li>
+  <li><strong>author</strong> - The author of the package. Default is <code class="language-plaintext highlighter-rouge">""</code></li>
+  <li><strong>licence</strong> - The package license. Default is <code class="language-plaintext highlighter-rouge">ISC</code></li>
+</ol>
+
+<h2 id="what-does-npm-i--d-typescript-jest-typesjest-ts-jest-do">What does npm i -D typescript jest @types/jest ts-jest do?</h2>
+
+<p><code class="language-plaintext highlighter-rouge">npm i</code> is shorthand for <code class="language-plaintext highlighter-rouge">npm install</code>. This command is used to install publicly available npm packages for use in a NodeJS project.<br />
+<code class="language-plaintext highlighter-rouge">-D</code> is shorthand for <code class="language-plaintext highlighter-rouge">--save-dev</code>. this flag indicates that the packages to download are only for local development and not required for production. Packages downloaded using this flag are added to the <code class="language-plaintext highlighter-rouge">devDependencies</code> field in the <code class="language-plaintext highlighter-rouge">package.json</code> file. Omitting this flag adds the packages to the <code class="language-plaintext highlighter-rouge">dependencies</code> field.</p>
+
+<ul>
+  <li><a href="https://www.npmjs.com/package/typescript">typescript</a> is the npm package that extends javascript to include a type system. Typescript files are identified via the <code class="language-plaintext highlighter-rouge">.ts</code> file extension. These <code class="language-plaintext highlighter-rouge">.ts</code> files can be transpiled into javascript with the <code class="language-plaintext highlighter-rouge">tsc</code> command.</li>
+  <li><a href="https://jestjs.io/">jest</a> is a  modern javascript testing framework.</li>
+  <li><a href="https://www.npmjs.com/package/@types/jest">@types/jest</a> is a package containing type definitions for Jest.</li>
+  <li><a href="https://www.npmjs.com/package/ts-jest">ts-jest</a> a Jest transformer for Typescript</li>
+</ul>
+
+<h2 id="what-is-the-tsconfigjson-file-for">What is the tsconfig.json file for?</h2>
+
+<p><a href="https://www.typescriptlang.org/tsconfig">tsconfig</a> contains various configurations for how your typescript modules should be transpiled into javascript.</p>
+
+<ul>
+  <li><a href="https://www.typescriptlang.org/tsconfig#compilerOptions">CompilerOptions</a> describes the output of your javascript modules. The properties provided above are:
+    <ul>
+      <li><a href="https://www.typescriptlang.org/tsconfig#module">module</a> - describe the module system, e.g. ESM, CommonJS, AMD, etc</li>
+      <li><a href="https://www.typescriptlang.org/tsconfig#target">target</a> - The ECMAScript target version. This determines what features are downgraded during transpilation and which are left intact</li>
+      <li><a href="https://www.typescriptlang.org/tsconfig#outDir">outDir</a> - Where the transpiled <code class="language-plaintext highlighter-rouge">.js</code> files are emitted</li>
+      <li><a href="https://www.typescriptlang.org/tsconfig#esModuleInterop">esModuleInterop</a> - Enabling resolves some default assumptions the Typescript transpiler makes about alternate module systems</li>
+      <li><a href="https://www.typescriptlang.org/tsconfig#forceConsistentCasingInFileNames">forceConsistentCasingInFileNames</a> - Enabling this feature forces file imports to match the file casing on disk</li>
+      <li><a href="https://www.typescriptlang.org/tsconfig#strict">strict</a> - Enables a range of type-checking behaviour which leads to stronger guarantees of program correctness</li>
+    </ul>
+  </li>
+  <li><a href="https://www.typescriptlang.org/tsconfig#include">include</a> lists the directories and files that should be transpiled into javascript.</li>
+  <li><a href="https://www.typescriptlang.org/tsconfig#exclude">exclude</a> lists the directories and files that should not be transpiled. e.g. test files.</li>
+</ul>
+
+<h2 id="what-is-the-jest-preset">What is the jest preset?</h2>
+
+<p>Within your jest config you can define a base configuration as your <a href="https://jestjs.io/docs/configuration#preset-string">preset</a> that targets an npm module, in this case we’re using ts-jest.</p>
+
+<h1 id="conclusion">Conclusion</h1>
+<p>The above guide should be viewed as a generic guide to get your project up and running. Different/additional configuration options may be required based on your project needs.</p>
+
+
+  
+</article>
+
+
+  <aside class="related">
+    <h2 class="related-title">Related posts</h2>
+    <ul class="related-posts">
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/ecr/docker/2024/09/14/aws-terraform-02.html">
+            Getting Started with AWS and Terraform: 02 - Hosting a dockerized web service in our EC2 container
+          </a>
+          <small><time datetime="2024-09-14T08:00:00+00:00">14 Sep 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/aws/terraform/infratructure/iac/2024/08/07/get-started-with-aws-tf-01.html">
+            Getting Started with AWS and Terraform: 01 - Creating an EC2 Instance
+          </a>
+          <small><time datetime="2024-08-07T08:00:00+00:00">07 Aug 2024</time></small>
+        </li>
+      
+        <li>
+          <a href="/javascript/math/numbers/ieee-754/floating/point/2024/03/17/floating-point-numbers.html">
+            0.1 + 0.2 or I Dont Understand Floating Point Numbers
+          </a>
+          <small><time datetime="2024-03-17T08:00:00+00:00">17 Mar 2024</time></small>
+        </li>
+      
+    </ul>
+  </aside>
+
+
+      </main>
+
+      <footer class="footer">
+  <div class="footer-column">
+    <p>
+      <small>
+        &copy;&nbsp;<time datetime="2022-12-04T08:00:00+00:00">2022</time>-<time datetime="2024-10-02T13:14:27+00:00">2024</time>. All right reserved.
+      </small>
+    </p>
+    <p>
+      <small>
+        Powered by <a href="https://jekyllrb.com/" target="_blank">Jekyll</a> & <a href="https://github.com/zivhub/monophase" target="_blank">Monophase</a>
+      </small>
+    </p>
+  </div>
+  
+    <div class="footer-column">
+      <ul class="social-icons">
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="mailto:kristian@kristianstolen.com" target="_blank">
+              <i class="fas fa-envelope" title="Email"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://github.com/kstolen0" target="_blank">
+              <i class="fab fa-github" title="GitHub"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="https://www.linkedin.com/in/kstolen" target="_blank">
+              <i class="fab fa-linkedin" title="LinkedIn"></i>
+            </a>
+          </li>
+        
+          <li class="social-icon-item">
+            <a class="social-icon" href="/feed.xml" target="_blank">
+              <i class="fas fa-rss" title="RSS"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  
+</footer>
+
+    </div>
+
+    
+
+    
+  </body>
+</html>
