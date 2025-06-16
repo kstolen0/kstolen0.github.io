@@ -8,6 +8,23 @@ description: What is concurrency and how can you leverage it in Kotlin
 
 Kotlin is a really powerful modern, compiled programming language which has a lot of tools for easily building concurrent programs. In this blog we'll talk a bit about these tools and how to use them, but first, let's give a little context about the systems that enable concurrent, and parallel programs.
 
+# Sequential, Concurrent, and Parallel tasks
+
+Let's get this out of the way.
+
+* Sequential means each task is executed one after the other (e.g. When cooking, preparing all the food then starting the cooking process)
+
+![sequential tasks](/assets/2025-06-16-concurrency/seq-tasks.png)
+
+* concurrent means tasks are still only executed one at a time, but this time execution is interweaved between tasks (e.g. chopping some veggies, cooking some food, then returning to chopping more veggies while the food is cooking)
+
+![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
+
+* parallel means multiple tasks are executed at the same time (e.g. You are cooking all the food while someone else is prepparing the food at the same time)
+
+![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
+
+
 # threads, processes, and the CPU
 
 ## The CPU
@@ -21,8 +38,6 @@ The CPU is made up of:
 * the Arithmetic-Logic Unit (ALU)
 * the cache, which stores temporary memory for quickly accessing information. 
 
-[cpu diagram here]
-
 When processes are started up, its program instructions and data are loaded into RAM, then into the CPU cache as needed. The cache controller is responsible for managing what data is in the cache predicting what program data should be added next.
 
 
@@ -35,7 +50,7 @@ The CPU is always performing a continuous execution cycle of 4 stages:
 3. Execute the instruction in the ALU
 4. Store the result of the instruction in cache/RAM
 
-[image here describing steps]
+![stages of a CPU cycle](/assets/2025-06-16-concurrency/cpu.png)
 
 That is a whoefully basic description of the CPU, there's a lot more going on but for our sake this is enough detail to continue.
 
@@ -47,7 +62,7 @@ A process is simply a running program. It is a set of instructions waiting to be
 
 Most of the programs we build never need to directly interface with the hardware running on a computer. The operating system (aka kernel space) is responsible for those operations. Instead, most software runs above the operating system in what is referred to as User Space and uses the APIs provided by the OS. 
 
-[user space/kernel space/hardware image]
+![user space, kernel space, and hardware separation](/assets/2025-06-16-concurrency/spaces.png)
 
 Processes in an OS share hardware resourses which are managed by the OS. To facilitate this, processes are given their own independant address space and file table.
 
@@ -58,6 +73,9 @@ Processes in an OS share hardware resourses which are managed by the OS. To faci
 * Executable - The executable file containing the machine instructions
 * Files required by the process
 * Address space of the process
+
+
+![properties of a process](/assets/2025-06-16-concurrency/process.png)
 
 In general, processes are completely independant and isolated from eachother, which can make communication between processes challenging.
 
@@ -73,7 +91,7 @@ Threads share the resources and memory space of the process they're created in, 
 
 With this division of responsibilities, the process can be viewed as the container for the process resources (address space, active connections, etc) and the thread the container of the process instruction set.
 
-[image of process and threads]
+![separation of process and its threads](/assets/2025-06-16-concurrency/process-threads.png)
 
 Threads are managed in the kernal space via a scheduler which allocates CPU time to threads. Thread management is limited by the number of CPU cores as the more threads need to be scheduled the more time the CPU will need to spend scheduling each thread.
 
