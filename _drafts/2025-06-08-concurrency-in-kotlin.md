@@ -6,24 +6,29 @@ categories: concurrency threads coroutines kotlin
 description: What is concurrency and how can you leverage it in Kotlin
 ---
 
-Kotlin is a really powerful modern, compiled programming language which has a lot of tools for easily building concurrent programs. In this blog we'll talk a bit about these tools and how to use them, but first, let's give a little context about the systems that enable concurrent, and parallel programs.
+Kotlin is a powerful, modern, compiled programming language which has a lot of tools for easily building concurrent programs. 
 
-# Sequential, Concurrent, and Parallel tasks
+In this blog we'll talk a bit about these tools and how to use them, but first, let's give a little context about the systems that enable concurrent, and parallel programs.
+
+# Serial, Concurrent, and Parallel tasks
 
 Let's get this out of the way.
 
-* Sequential means each task is executed one after the other (e.g. When cooking, preparing all the food then starting the cooking process)
+Serial means each task is executed one after the other. When a task is blocked, nothing is being executed.
 
-![sequential tasks](/assets/2025-06-16-concurrency/seq-tasks.png)
+![serial tasks](/assets/2025-06-16-concurrency/ser-tasks.png)
 
-* concurrent means tasks are still only executed one at a time, but this time execution is interweaved between tasks (e.g. chopping some veggies, cooking some food, then returning to chopping more veggies while the food is cooking)
+Concurrent means tasks are still only executed one at a time, but this time execution is interweaved between tasks.
+
+This is epecially useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
 
 ![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
 
-* parallel means multiple tasks are executed at the same time (e.g. You are cooking all the food while someone else is prepparing the food at the same time)
+Parallel means multiple tasks are executed at the same time. Completing all tasks only take as long as the longest running task. Parallel execution requires multiple processing units to run in parallel.
 
 ![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
 
+For the most part, we will be talking about concurrent processes here. 
 
 # threads, processes, and the CPU
 
@@ -34,9 +39,11 @@ Before we get into how concurrency works in Kotlin specifically, let's establish
 The CPU (Central Processing Unit) is responsible for executing all* of the instructions of our programs. 
 
 The CPU is made up of:
-* the Control Unit (CU)
-* the Arithmetic-Logic Unit (ALU)
-* the cache, which stores temporary memory for quickly accessing information. 
+* the Control Unit (CU), which interprets machine instructions
+* the Arithmetic-Logic Unit (ALU), which performs arithmetic and bitwise operations sent from the CU
+* the cache, which stores temporary memory for quickly accessing information 
+
+![properties of the CPU](/assets/2025-06-16-concurrency/cpu.png)
 
 When processes are started up, its program instructions and data are loaded into RAM, then into the CPU cache as needed. The cache controller is responsible for managing what data is in the cache predicting what program data should be added next.
 
@@ -50,7 +57,9 @@ The CPU is always performing a continuous execution cycle of 4 stages:
 3. Execute the instruction in the ALU
 4. Store the result of the instruction in cache/RAM
 
-![stages of a CPU cycle](/assets/2025-06-16-concurrency/cpu.png)
+In a single core computer, all instructions are run serially. The CPU doesnt have a concept of "different tasks". This is managed beyond the hardware layer.
+
+![stages of a CPU cycle](/assets/2025-06-16-concurrency/cpu-stages.png)
 
 That is a whoefully basic description of the CPU, there's a lot more going on but for our sake this is enough detail to continue.
 
@@ -97,9 +106,11 @@ Threads are managed in the kernal space via a scheduler which allocates CPU time
 
 ## Virtual Threads 
 
-Virtual threads act in the same way as traditional threads but are managed in user space (e.g. the JVM). These are lighter-weight than traditional threads which allows for many virtual threads to run at the same time.
+Virtual threads act in the same way as traditional threads but are managed by the process in user space. These are lighter-weight than traditional threads which allows for many virtual threads to run at the same time.
 
-When a traditional thread is blocked (e.g. while waiting for a network response), the underlying OS thread is also blocked, which prevents its use from other resources.
+![separation of process and its threads](/assets/2025-06-16-concurrency/virtual-threads.png)
+
+When a traditional thread is blocked the underlying OS thread is also blocked, which prevents its use from other resources.
 
 When a virtual thread is blocked, it is considered `suspended`. Its state is stored and the underlying OS thread is freed up to perform other tasks until the virtual thread is resumed.
 
@@ -109,11 +120,37 @@ OK. With all that out of the way, let's get into the code! Concurrency is enable
 
 ## suspend functions
 
-When working in a Kotlin project you will see a lot of function definitions with the `suspend` prefix about. Suspending functions enable the use of Kotlins built-in coroutine functions for concurrency, such as `async` and `delay`. 
+When working in a Kotlin project you will see a lot of function definitions with the `suspend` prefix about.
 
-Naturally, suspend functions aren't concurrent by default (that would lead to alot of unexpected bugs), but by defining a suspending function, when the thread is blocked (e.g. while waiting for a database), the underlying thread is freed up to run other tasks. 
+Suspending functions enable the use of Kotlins built-in coroutine functions for concurrency, such as `async` and `delay`. 
+
+Naturally, suspend functions aren't concurrent by default (that would lead to a lot of unexpected bugs), but by defining a suspending function, when the thread is blocked (e.g. while waiting for a database), the underlying thread is freed up to run other tasks. 
+
+// example suspend function
+
+
+# launch and async
+
+`launch` Creates a new Job and runs it concurrently so it doesnt block the current execution context. When run within a coroutine scope (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
+
+// example launch
+
+`async` operates similar to `launch` however this returns a `Deferred` object. `Deferred` objects are a form of future object. A future object is a form of a "promise" that at some point a value will be returned, or an error is thrown. To access the result you can call `await` on the object.
+
+// example async
 
 # structured concurrency
 
-# launch and async
+Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks and makes concurrent processes easier to manage.
+
+`runBlocking` is the first step in introducing structured concurrency. `runBlocking` creates a coroutine context which bridges the gap between blocking (serial) and non-blocking (concurrent) code. 
+
+This function blocks the current thread until all Jobs within its scope have completed.
+
+Suspending functions require a coroutine context to be used as they rely on coroutine functions to operate. 
+
+`runBlocking` does not preserve any existing context so avoid scattering this throughout your code. Typically this is only run at the entrypoint of a program.
+
+`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Similar to run blocking, this function suspends the current Job until all jobs in its scope have completed.
+
 
