@@ -6,27 +6,32 @@ categories: concurrency threads coroutines kotlin
 description: What is concurrency and how can you leverage it in Kotlin
 ---
 
-Kotlin is a powerful, modern, compiled programming language which has a lot of tools for easily building concurrent programs. 
+When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flux` just to name a few.
 
-In this blog we'll talk a bit about these tools and how to use them, but first, let's give a little context about the systems that enable concurrent, and parallel programs.
+I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. Turns out it's all about concurrency and generally our codebase wasn't really leveraging these tools. 
+
+Kotlin is a powerful, modern, compiled programming language and is a great language to use for many types of projects.
+
+This post aims to help you understand some of the concurrency tools offered by the language as well as how concurrency is enabled under the hood.
+
 
 # Serial, Concurrent, and Parallel tasks
 
 Let's get this out of the way.
 
+![serial tasks](/assets/2025-06-16-concurrency/ser-tasks.png)
+
 Serial means each task is executed one after the other. When a task is blocked, nothing is being executed.
 
-![serial tasks](/assets/2025-06-16-concurrency/ser-tasks.png)
+![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
 
 Concurrent means tasks are still only executed one at a time, but this time execution is interweaved between tasks.
 
 This is epecially useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
 
-![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
+![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
 
 Parallel means multiple tasks are executed at the same time. Completing all tasks only take as long as the longest running task. Parallel execution requires multiple processing units to run in parallel.
-
-![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
 
 For the most part, we will be talking about concurrent processes here. 
 
@@ -54,8 +59,8 @@ The CPU is always performing a continuous execution cycle of 4 stages:
 
 1. Fetch instruction from cache
 2. Decode the instruction
-3. Execute the instruction in the ALU
-4. Store the result of the instruction in cache/RAM
+3. Execute the instruction
+4. Store the result of the instruction
 
 In a single core computer, all instructions are run serially. The CPU doesnt have a concept of "different tasks". This is managed beyond the hardware layer.
 
@@ -69,7 +74,9 @@ That is a whoefully basic description of the CPU, there's a lot more going on bu
 
 A process is simply a running program. It is a set of instructions waiting to be executed.
 
-Most of the programs we build never need to directly interface with the hardware running on a computer. The operating system (aka kernel space) is responsible for those operations. Instead, most software runs above the operating system in what is referred to as User Space and uses the APIs provided by the OS. 
+Most of the programs we build never need to directly interface with the hardware running on a computer. The operating system (aka kernel space) is responsible for those operations. 
+
+Instead, most software runs above the operating system as an isolated Process in User Space and uses the APIs provided by the OS. 
 
 ![user space, kernel space, and hardware separation](/assets/2025-06-16-concurrency/spaces.png)
 
