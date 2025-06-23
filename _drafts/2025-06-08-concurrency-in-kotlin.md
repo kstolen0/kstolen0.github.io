@@ -25,7 +25,7 @@ Serial means each task is executed one after the other. When a task is blocked, 
 
 ![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
 
-Concurrent means tasks are still only executed one at a time, but this time execution is interweaved between tasks.
+Concurrent means tasks are still only executed one at a time, but this time execution is interleaved between tasks.
 
 This is epecially useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
 
@@ -123,41 +123,177 @@ When a virtual thread is blocked, it is considered `suspended`. Its state is sto
 
 # Concurrency in Kotlin
 
-OK. With all that out of the way, let's get into the code! Concurrency is enabled in Kotlin via the use of traditional threads and virtual threads, known as `coroutines`. We will focus on concurrency via coroutines as that is the more idiomatic approach and satisfies most use-cases.
+OK. With all that out of the way, let's get into the code! Concurrency is enabled in Kotlin via the use of traditional threads and virtual threads, known as `coroutines`. 
+
+Coroutines are a built in feature of Kotlin, but most projects use the official [kotlinx-coroutines](https://github.com/Kotlin/kotlinx.coroutines) library for it's intuitive coroutine builders, so these examples will be using that library.
 
 ## suspend functions
 
-When working in a Kotlin project you will see a lot of function definitions with the `suspend` prefix about.
+When working in a Kotlin project you will see a lot of function definitions with the `suspend` keyword about.
 
-Suspending functions enable the use of Kotlins built-in coroutine functions for concurrency, such as `async` and `delay`. 
+suspend functions can only be called in a coroutine context. As the name suggests, this enables the function to be `suspended` in which the current context stops executing, the state is saved, allowing the underlying thread to execute another coroutine. 
 
-Naturally, suspend functions aren't concurrent by default (that would lead to a lot of unexpected bugs), but by defining a suspending function, when the thread is blocked (e.g. while waiting for a database), the underlying thread is freed up to run other tasks. 
+```kotlin
+suspend fun foo() {
+  bar()
+  // this is a suspension point
+  yield()
+  baz()
+}
+```
 
-// example suspend function
+In the above example `foo` is a suspending function. It can call other suspending functions just the same as any non-suspending function. 
 
+Here, it is calling `yield` which is a suspend function provided by the kotlinx library which suspends the current coroutine and immediately schedules it so another coroutine can execute.
 
-# launch and async
+Calling suspend functions in a coroutine context wont run concurrently by default. For that we need some additional coroutine builders.
+
+# launching a coroutine
 
 `launch` Creates a new Job and runs it concurrently so it doesnt block the current execution context. When run within a coroutine scope (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
 
-// example launch
+```kotlin 
+// create a coroutine context
+runBlocking {
+    // launch a new job (coroutine) so that it can be run
+    // concurrently in the current coroutine scope
+    launch {
+        println("task 1 step 1")
+        // suspend the current job and immediately schedule it
+        // fow when the thread becomes available
+        yield()
+        println("task 1 step 2")
+        yield()
+        println("task 1 step 3")
+    }
+    launch {
+        println("task 2 step 1")
+        yield()
+        println("task 2 step 2")
+        yield()
+        println("task 2 step 3")
+    }
+}
+```
+![launch output](/assets/2025-06-16-concurrency/launch-output.png)
+
+[See here](https://github.com/kstolen0/kotlin-coroutines/blob/launch/src/main/kotlin/Main.kt) for the full code.
+
+## Waiting for the Job to complete (join)
+
+Often you may want to run multiple jobs concurrently, and only run other tasks once the previous jobs are completed. For this you can use the `join` method from the launched job which suspends the coroutine until the job has completed.
+
+Take the following code:
+
+```
+// create a coroutine context
+runBlocking {
+  // launch a new job to run concurrently
+  val job1 = launch {
+      delay(100)
+      println("job 1 complete")
+  }
+
+  // launch a new job to run concurrently
+  val job2 = launch {
+      delay(50)
+      println("job 2 complete")
+  }
+
+  // suspend until all jobs have completed
+  job1.join()
+  job2.join()
+  println("all jobs completed")
+}
+```
+
+Which produces the output:
+
+![output of joining jobs](/assets/2025-06-16-concurrency/join-output.png)
+
+Another method of achieving this is to launch the jobs in a new `coroutineScope` which creates a new coroutine context, inheriting the existing context, and suspends the current coroutine until all jobs in its scope have completed.
+
+```kotlin
+// create a coroutine context
+runBlocking {
+    // suspend until jobs have completed
+    coroutineScope {
+        launch {
+            delay(100)
+            println("job 1 complete")
+        }
+
+        launch {
+            delay(50)
+            println("job 2 complete")
+        }
+    }
+    println("all jobs completed")
+}
+```
+
+[See here](https://github.com/kstolen0/kotlin-coroutines/blob/join/src/main/kotlin/Main.kt) for the full code.
+
+# Returning values from a Job (async)
 
 `async` operates similar to `launch` however this returns a `Deferred` object. `Deferred` objects are a form of future object. A future object is a form of a "promise" that at some point a value will be returned, or an error is thrown. To access the result you can call `await` on the object.
 
-// example async
+```kotlin
+// create coroutine context
+runBlocking {
+  // async is a coroutine builder which launches a Job
+  // and returns a Deferred object.
+  // A Deferred object will eventually return a result, or it will fail
+  //
+  // taskOne immediately suspends the current job 
+  // before returning "world"
+  val taskOne = async {
+      yield()
+      "world"
+  }
+  // taskTwo immediately returns "hello"
+  val taskTwo = async {
+      // uncomment the below line to also cancel the
+      // job awaiting the result from taskTwo
+      // cancel()
+      "hello"
+  }
+
+  // await the results in another coroutine so we dont block
+  launch {
+      // await suspends the current coroutine
+      // until the result is available.
+      // if the job was cancelled then this job will also be cancelled
+      println(taskOne.await())
+  }
+  
+  launch {
+      println(taskTwo.await())
+  }
+}
+```
+![async output](/assets/2025-06-16-concurrency/async-output.png)
 
 # structured concurrency
 
-Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks and makes concurrent processes easier to manage.
+Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks and makes concurrent processes safer to manage. Within a coroutine context, coroutines are managed in a hierarchy such that parent jobs can keep track of the state of  its children. 
+
+![job hierarchy](/assets/2025-06-16-concurrency/job-context.png)
 
 `runBlocking` is the first step in introducing structured concurrency. `runBlocking` creates a coroutine context which bridges the gap between blocking (serial) and non-blocking (concurrent) code. 
 
 This function blocks the current thread until all Jobs within its scope have completed.
 
-Suspending functions require a coroutine context to be used as they rely on coroutine functions to operate. 
+`runBlocking` does not preserve the existing coroutine context so avoid scattering this throughout your code. Typically this is only run at the entrypoint of a program.
 
-`runBlocking` does not preserve any existing context so avoid scattering this throughout your code. Typically this is only run at the entrypoint of a program.
+`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesnt block the underlyng thread, it only suspends its context. 
 
-`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Similar to run blocking, this function suspends the current Job until all jobs in its scope have completed.
+New coroutines can be created within these scopes (via `launch` and `async`). Kotlin will keep track of these jobs so that the parent jobs will not complete until all its child jobs have completed. 
 
+Additionally, if a job is cancelled, so will its sibling jobs, or any running child jobs.
 
+![job being cancelled](/assets/2025-06-16-concurrency/job-context-cancelled.png)
+
+# Conclusion
+
+Hopefully this article gave 
