@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Concurrency in Kotlin"
+title: "Concurrency and Kotlin"
 date: 2025-6-7 16:00:00 +0800
 categories: concurrency threads coroutines kotlin
 description: What is concurrency and how can you leverage it in Kotlin
@@ -27,7 +27,7 @@ Serial means each task is executed one after the other. When a task is blocked, 
 
 Concurrent means tasks are still only executed one at a time, but this time execution is interleaved between tasks.
 
-This is epecially useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
+This is particularly useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
 
 ![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
 
@@ -39,7 +39,7 @@ For the most part, we will be talking about concurrent processes here.
 
 ## The CPU
 
-Before we get into how concurrency works in Kotlin specifically, let's establish a basic understanding of how computers enable concurrency.
+Before we get into how concurrency works in Kotlin, let's establish a basic understanding of how computers enable concurrency.
 
 The CPU (Central Processing Unit) is responsible for executing all* of the instructions of our programs. 
 
@@ -66,9 +66,9 @@ In a single core computer, all instructions are run serially. The CPU doesnt hav
 
 ![stages of a CPU cycle](/assets/2025-06-16-concurrency/cpu-stages.png)
 
-That is a whoefully basic description of the CPU, there's a lot more going on but for our sake this is enough detail to continue.
+That is a woefully basic description of the CPU, there's a lot more going on but for our sake this is enough detail to continue.
 
-> If you're reading this article you're probably familiar with the "other PU", the GPU. This is also responible for executing instructions and is incredibly fast due to its massive amounts of cores which enable parallelism however GPUs have far limited instruction set compared to CPUs so they can only perform a limited set of tasks, like BitCoin mining
+> If you're reading this article you're probably familiar with the "other PU", the GPU. This is also responsible for executing instructions and is incredibly fast due to its massive amounts of cores which enable parallelism however GPUs have far limited instruction set compared to CPUs so they can only perform a limited set of tasks, like BitCoin mining
 
 ## Processes
 
@@ -80,7 +80,7 @@ Instead, most software runs above the operating system as an isolated Process in
 
 ![user space, kernel space, and hardware separation](/assets/2025-06-16-concurrency/spaces.png)
 
-Processes in an OS share hardware resourses which are managed by the OS. To facilitate this, processes are given their own independant address space and file table.
+Processes in an OS share hardware resourses which are managed by the OS. To facilitate this, processes are given their own independent address space and file table.
 
 ### Properties of a process
 
@@ -93,11 +93,11 @@ Processes in an OS share hardware resourses which are managed by the OS. To faci
 
 ![properties of a process](/assets/2025-06-16-concurrency/process.png)
 
-In general, processes are completely independant and isolated from eachother, which can make communication between processes challenging.
+In general, processes are completely independent and isolated from each other, which can make communication between processes challenging.
 
-While processes can spawn their own child processes, these child processes are still independant from the parent process and cannot directly communicate.
+While processes can spawn their own child processes, these child processes are still independent from the parent process and cannot directly communicate.
 
-> Spawning child processes from a parent process is a method of achieving concurrency however these processes cannot directly communicte
+> Spawning child processes from a parent process is a method of achieving concurrency however these processes cannot directly communicate
 
 ## Threads
 
@@ -109,7 +109,7 @@ With this division of responsibilities, the process can be viewed as the contain
 
 ![separation of process and its threads](/assets/2025-06-16-concurrency/process-threads.png)
 
-Threads are managed in the kernal space via a scheduler which allocates CPU time to threads. Thread management is limited by the number of CPU cores as the more threads need to be scheduled the more time the CPU will need to spend scheduling each thread.
+Threads are managed in the kernel space via a scheduler which allocates CPU time to threads. Thread management is limited by the number of CPU cores as the more threads need to be scheduled the more time the CPU will need to spend scheduling each thread.
 
 ## Virtual Threads 
 
@@ -150,7 +150,7 @@ Calling suspend functions in a coroutine context wont run concurrently by defaul
 
 # launching a coroutine
 
-`launch` Creates a new Job and runs it concurrently so it doesnt block the current execution context. When run within a coroutine scope (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
+`launch` Creates a new Job and runs it concurrently so it doesn't block the current execution context. When run within a coroutine scope (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
 
 ```kotlin 
 // create a coroutine context
@@ -160,7 +160,7 @@ runBlocking {
     launch {
         println("task 1 step 1")
         // suspend the current job and immediately schedule it
-        // fow when the thread becomes available
+        // for when the thread becomes available
         yield()
         println("task 1 step 2")
         yield()
@@ -185,7 +185,7 @@ Often you may want to run multiple jobs concurrently, and only run other tasks o
 
 Take the following code:
 
-```
+```kotlin
 // create a coroutine context
 runBlocking {
   // launch a new job to run concurrently
@@ -284,13 +284,13 @@ Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs
 
 This function blocks the current thread until all Jobs within its scope have completed.
 
-`runBlocking` does not preserve the existing coroutine context so avoid scattering this throughout your code. Typically this is only run at the entrypoint of a program.
+`runBlocking` does not preserve the existing coroutine context so avoid scattering this throughout your code. Typically this is only run at the entry point of a program.
 
-`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesnt block the underlyng thread, it only suspends its context. 
+`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesn't block the underlying thread, it only suspends its context. 
 
 New coroutines can be created within these scopes (via `launch` and `async`). Kotlin will keep track of these jobs so that the parent jobs will not complete until all its child jobs have completed. 
 
-Additionally, if a job is cancelled, so will its sibling jobs, or any running child jobs.
+Additionally, if a job is cancelled, so will its child jobs, or any jobs dependant on its result.
 
 ![job being cancelled](/assets/2025-06-16-concurrency/job-context-cancelled.png)
 
