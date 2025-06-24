@@ -6,13 +6,11 @@ categories: concurrency threads coroutines kotlin
 description: What is concurrency and how can you leverage it in Kotlin
 ---
 
-When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flux` just to name a few.
+When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flow` just to name a few.
 
 I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. Turns out it's all about concurrency and generally our codebase wasn't really leveraging these tools. 
 
-Kotlin is a powerful, modern, compiled programming language and is a great language to use for many types of projects.
-
-This post aims to help you understand some of the concurrency tools offered by the language as well as how concurrency is enabled under the hood.
+This post aims to share the knowledge I've gained and help you understand some of the concurrency tools offered by the Kotlin as well as how concurrency is enabled at a deeper level.
 
 
 # Serial, Concurrent, and Parallel tasks
@@ -41,12 +39,12 @@ For the most part, we will be talking about concurrent processes here.
 
 Before we get into how concurrency works in Kotlin, let's establish a basic understanding of how computers enable concurrency.
 
-The CPU (Central Processing Unit) is responsible for executing all* of the instructions of our programs. 
+The Central Processing Unit (CPU) is responsible for executing all* of the instructions of our programs. 
 
 The CPU is made up of:
 * the Control Unit (CU), which interprets machine instructions
 * the Arithmetic-Logic Unit (ALU), which performs arithmetic and bitwise operations sent from the CU
-* the cache, which stores temporary memory for quickly accessing information 
+* the cache, which stores temporary memory for quick access to information 
 
 ![properties of the CPU](/assets/2025-06-16-concurrency/cpu.png)
 
@@ -62,7 +60,7 @@ The CPU is always performing a continuous execution cycle of 4 stages:
 3. Execute the instruction
 4. Store the result of the instruction
 
-In a single core computer, all instructions are run serially. The CPU doesnt have a concept of "different tasks". This is managed beyond the hardware layer.
+In a single core computer, all instructions are run serially. The CPU doesn't have a concept of "processes" or "threads". This is managed beyond the hardware layer.
 
 ![stages of a CPU cycle](/assets/2025-06-16-concurrency/cpu-stages.png)
 
@@ -76,11 +74,11 @@ A process is simply a running program. It is a set of instructions waiting to be
 
 Most of the programs we build never need to directly interface with the hardware running on a computer. The operating system (aka kernel space) is responsible for those operations. 
 
-Instead, most software runs above the operating system as an isolated Process in User Space and uses the APIs provided by the OS. 
+Instead, most software runs above the operating system as an isolated process in User Space and uses the APIs provided by the OS. 
 
 ![user space, kernel space, and hardware separation](/assets/2025-06-16-concurrency/spaces.png)
 
-Processes in an OS share hardware resourses which are managed by the OS. To facilitate this, processes are given their own independent address space and file table.
+Processes share hardware resources which are managed by the OS. To facilitate this, processes are given their own independent address space and file table.
 
 ### Properties of a process
 
@@ -103,35 +101,37 @@ While processes can spawn their own child processes, these child processes are s
 
 Threads are defined as an independent stream of instructions whose execution can be scheduled by the OS.
 
-Threads share the resources and memory space of the process they're created in, which enables concurrent processing of instructions and simplifies sharing resources between threads.
+Processes can spawn multiple threads to execute instructions concurrently. These threads share the resources and memory space of the process they're created in which simplifies sharing resources between threads.
 
-With this division of responsibilities, the process can be viewed as the container for the process resources (address space, active connections, etc) and the thread the container of the process instruction set.
+With the introduction of threads, the process can be viewed as the container for the process resources (address space, active connections, etc) and the thread the container of the process instruction set.
 
 ![separation of process and its threads](/assets/2025-06-16-concurrency/process-threads.png)
 
-Threads are managed in the kernel space via a scheduler which allocates CPU time to threads. Thread management is limited by the number of CPU cores as the more threads need to be scheduled the more time the CPU will need to spend scheduling each thread.
+Threads are managed in the kernel space via a scheduler which allocates CPU time to threads. 
+
+Thread management is limited by the number of CPU cores as the more threads per CPU core the more time the kernel will need to spend scheduling each thread, which is time not spent executing threads.
 
 ## Virtual Threads 
 
-Virtual threads act in the same way as traditional threads but are managed by the process in user space. These are lighter-weight than traditional threads which allows for many virtual threads to run at the same time.
+Virtual threads act in the same way as traditional threads but are managed by the process in user space. These require less overhead than traditional threads which allows for many more virtual threads to run at the same time. 
 
 ![separation of process and its threads](/assets/2025-06-16-concurrency/virtual-threads.png)
 
 When a traditional thread is blocked the underlying OS thread is also blocked, which prevents its use from other resources.
 
-When a virtual thread is blocked, it is considered `suspended`. Its state is stored and the underlying OS thread is freed up to perform other tasks until the virtual thread is resumed.
+When a virtual thread is blocked, it is considered `suspended`. Its state is stored and the underlying OS thread is freed up to execute other scheduled virtual threads.
 
 # Concurrency in Kotlin
 
 OK. With all that out of the way, let's get into the code! Concurrency is enabled in Kotlin via the use of traditional threads and virtual threads, known as `coroutines`. 
 
-Coroutines are a built in feature of Kotlin, but most projects use the official [kotlinx-coroutines](https://github.com/Kotlin/kotlinx.coroutines) library for it's intuitive coroutine builders, so these examples will be using that library.
+Coroutines can be created and managed via the Kotlin standard library, but most projects use the official [kotlinx-coroutines](https://github.com/Kotlin/kotlinx.coroutines) library for it's intuitive coroutine builders, so these examples will be using that library.
 
 ## suspend functions
 
 When working in a Kotlin project you will see a lot of function definitions with the `suspend` keyword about.
 
-suspend functions can only be called in a coroutine context. As the name suggests, this enables the function to be `suspended` in which the current context stops executing, the state is saved, allowing the underlying thread to execute another coroutine. 
+suspend functions can only be called in a coroutine context. As the name suggests, this enables the function to be `suspended` in which the current context stops executing and the coroutine state is saved, allowing the underlying thread to execute another coroutine. 
 
 ```kotlin
 suspend fun foo() {
@@ -144,7 +144,7 @@ suspend fun foo() {
 
 In the above example `foo` is a suspending function. It can call other suspending functions just the same as any non-suspending function. 
 
-Here, it is calling `yield` which is a suspend function provided by the kotlinx library which suspends the current coroutine and immediately schedules it so another coroutine can execute.
+Here, it is calling `yield`, a suspend function provided by the kotlinx library which suspends the current coroutine and immediately schedules it so the next scheduled coroutine can execute.
 
 Calling suspend functions in a coroutine context wont run concurrently by default. For that we need some additional coroutine builders.
 
@@ -154,6 +154,8 @@ Calling suspend functions in a coroutine context wont run concurrently by defaul
 
 ```kotlin 
 // create a coroutine context
+// this blocks the underlying OS thread until 
+// all jobs have completed
 runBlocking {
     // launch a new job (coroutine) so that it can be run
     // concurrently in the current coroutine scope
@@ -177,11 +179,18 @@ runBlocking {
 ```
 ![launch output](/assets/2025-06-16-concurrency/launch-output.png)
 
+In the above example, we created a coroutine context with `runBlocking` witch enables the use of coroutine functions. 
+
+Inside that context, we launched two coroutines which each printed out a line before yielding to the other coroutine.
+
 [See here](https://github.com/kstolen0/kotlin-coroutines/blob/launch/src/main/kotlin/Main.kt) for the full code.
+
 
 ## Waiting for the Job to complete (join)
 
-Often you may want to run multiple jobs concurrently, and only run other tasks once the previous jobs are completed. For this you can use the `join` method from the launched job which suspends the coroutine until the job has completed.
+Often you may want to run multiple jobs concurrently, and only run other tasks once the previous jobs are completed. 
+
+For this you can use the `join` method from the launched job which suspends the coroutine until the job has completed.
 
 Take the following code:
 
@@ -190,6 +199,7 @@ Take the following code:
 runBlocking {
   // launch a new job to run concurrently
   val job1 = launch {
+      // suspend the current coroutine for 100ms
       delay(100)
       println("job 1 complete")
   }
@@ -201,8 +211,7 @@ runBlocking {
   }
 
   // suspend until all jobs have completed
-  job1.join()
-  job2.join()
+  joinAll(job1, job2)
   println("all jobs completed")
 }
 ```
@@ -236,7 +245,9 @@ runBlocking {
 
 # Returning values from a Job (async)
 
-`async` operates similar to `launch` however this returns a `Deferred` object. `Deferred` objects are a form of future object. A future object is a form of a "promise" that at some point a value will be returned, or an error is thrown. To access the result you can call `await` on the object.
+`async` operates similar to `launch` however this returns a `Deferred` object. `Deferred` objects are a type of future object. 
+
+A future object is a "promise" that at some point a value will be returned, or an error will be thrown. To access the result you can call `await` the result which will suspend the current coroutine until the result or error is available.
 
 ```kotlin
 // create coroutine context
@@ -259,7 +270,7 @@ runBlocking {
       "hello"
   }
 
-  // await the results in another coroutine so we dont block
+  // await the results in another coroutine so we don't block
   launch {
       // await suspends the current coroutine
       // until the result is available.
@@ -274,9 +285,23 @@ runBlocking {
 ```
 ![async output](/assets/2025-06-16-concurrency/async-output.png)
 
+The above is one of the more complicated "hello world" programs. 
+
+We create a coroutine context as usual. 
+
+We then launch an `async` job which returns a `Deferred`. The job immediately yields so the next coroutine can run before returning "world".
+
+We then launch another `async` job. This job simply returns "hello".
+
+Instead of awaiting the results directly, we await them inside another coroutine so they don't suspend the current coroutine. Otherwise, we would have simply printed the results in the order we awaited them.
+
+[See here](https://github.com/kstolen0/kotlin-coroutines/blob/async/src/main/kotlin/Main.kt) for the full code.
+
 # structured concurrency
 
-Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks and makes concurrent processes safer to manage. Within a coroutine context, coroutines are managed in a hierarchy such that parent jobs can keep track of the state of  its children. 
+Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks which makes concurrent processes safer to manage. 
+
+Within a coroutine context, coroutines are managed in a hierarchy such that parent jobs can keep track of the state of their children. 
 
 ![job hierarchy](/assets/2025-06-16-concurrency/job-context.png)
 
@@ -286,7 +311,7 @@ This function blocks the current thread until all Jobs within its scope have com
 
 `runBlocking` does not preserve the existing coroutine context so avoid scattering this throughout your code. Typically this is only run at the entry point of a program.
 
-`coroutineScope` is similar to `runBlocking` however it maintains the current context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesn't block the underlying thread, it only suspends its context. 
+`coroutineScope` is similar to `runBlocking` however it maintains the current coroutine context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesn't block the underlying thread, it only suspends the current coroutine. 
 
 New coroutines can be created within these scopes (via `launch` and `async`). Kotlin will keep track of these jobs so that the parent jobs will not complete until all its child jobs have completed. 
 
@@ -296,4 +321,32 @@ Additionally, if a job is cancelled, so will its child jobs, or any jobs dependa
 
 # Conclusion
 
-Hopefully this article gave 
+Hopefully this article gave a better understanding of how concurrency is enabled in software systems and how to leverage it in your Kotlin projects. To summarize:
+
+* Threads are managed by the kernel
+* All processes have at least one thread
+* coroutines are managed by the process they run in
+* coroutines can be suspended so the underlying thread can execute other coroutines
+* use `runBlocking` to create a coroutine context
+* use `coroutineScope` to create an inherited coroutine context
+* use `launch` to execute a task concurrently when you don't expect a result
+* use `async` to execute a task concurrently when you do expect a result
+
+Finally, while Kotlin provides a great framework for safely adding concurrency to your system, introducing concurrency always comes at a cost, and so should be used with careful consideration of the operations being performed.
+
+# Further reading
+
+This only scratched the surface of concurrency and the tools available in Kotlin. 
+
+You can also enable parallel operations by defining `Dispatchers`, pass data between coroutines using `channels`, set timeouts on operations using `withTimeout`, and asynchronously stream values with `Flow`.
+
+We also didn't touch on the other concurrency pattern available in Kotlin, known as Reactive Concurrency. That deserves its own article.
+
+
+For further reading I would highly recommend:
+
+* The [official kotlin docs](https://kotlinlang.org/docs/coroutines-guide.html) for exploring all the library features which covers those other topics this article didn't get to
+* [Coroutines: Concurrency in Kotlin](https://www.youtube.com/watch?v=e7tKQDJsTGs) YouTube video by Dave Leeds for a great illustrated explanation of Kotlin coroutines
+* [Kotlin Coroutines Tuturial, Part 1](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Rock the JVM which dives a little deeper into the code
+* [Grokking Concurrency](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Kirill Bobrov for a more theoretical understanding of concurrent systems, patterns, and problems that may arise
+
