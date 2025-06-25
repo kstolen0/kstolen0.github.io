@@ -8,24 +8,27 @@ description: What is concurrency and how can you leverage it in Kotlin
 
 When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flow` just to name a few.
 
-I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. Turns out it's all about concurrency and generally our codebase wasn't really leveraging these tools. 
+I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. So I did a bit of research and chat to some colleagues and thought I'd share what I've learned along the way. 
 
-This post aims to share the knowledge I've gained and help you understand some of the concurrency tools offered by the Kotlin as well as how concurrency is enabled at a deeper level.
+This article aims to give you an introduction to the world of concurrency, how computers enable concurrent processes, and demystify a lot of the concurrency tools available in Kotlin.
 
 
-# Serial, Concurrent, and Parallel tasks
+# What's the difference between serial, concurrent, and parallel tasks?
 
-Let's get this out of the way.
+This question usually comes up when talking about concurrency So let's get this out of the way.
+
 
 ![serial tasks](/assets/2025-06-16-concurrency/ser-tasks.png)
 
-Serial means each task is executed one after the other. When a task is blocked, nothing is being executed.
+Serial tasks are executed one at a time. When one task is completed, the next task begins. 
+
+When a task is blocked (e.g. waiting for an API response), nothing is being executed.
 
 ![concurrent tasks](/assets/2025-06-16-concurrency/con-tasks.png)
 
 Concurrent means tasks are still only executed one at a time, but this time execution is interleaved between tasks.
 
-This is particularly useful as when one task is paused (e.g. waiting for an API response), another task can begin execution in the meantime.
+This is particularly useful as when one task is blocked, another task can begin execution in the meantime.
 
 ![parallel tasks](/assets/2025-06-16-concurrency/par-tasks.png)
 
@@ -33,7 +36,7 @@ Parallel means multiple tasks are executed at the same time. Completing all task
 
 For the most part, we will be talking about concurrent processes here. 
 
-# threads, processes, and the CPU
+# Threads, processes, and the CPU
 
 ## The CPU
 
@@ -111,7 +114,7 @@ Threads are managed in the kernel space via a scheduler which allocates CPU time
 
 Thread management is limited by the number of CPU cores as the more threads per CPU core the more time the kernel will need to spend scheduling each thread, which is time not spent executing threads.
 
-## Virtual Threads 
+## Virtual threads 
 
 Virtual threads act in the same way as traditional threads but are managed by the process in user space. These require less overhead than traditional threads which allows for many more virtual threads to run at the same time. 
 
@@ -127,7 +130,7 @@ OK. With all that out of the way, let's get into the code! Concurrency is enable
 
 Coroutines can be created and managed via the Kotlin standard library, but most projects use the official [kotlinx-coroutines](https://github.com/Kotlin/kotlinx.coroutines) library for it's intuitive coroutine builders, so these examples will be using that library.
 
-## suspend functions
+## Suspend functions
 
 When working in a Kotlin project you will see a lot of function definitions with the `suspend` keyword about.
 
@@ -148,7 +151,7 @@ Here, it is calling [yield](https://kotlinlang.org/api/kotlinx.coroutines/kotlin
 
 Calling suspend functions in a coroutine context wont run concurrently by default. For that we need some additional coroutine builders.
 
-# launching a coroutine
+# Launching a coroutine
 
 [launch](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/launch.html) creates a new Job and runs it concurrently so it doesn't block the current execution context. When run within a [coroutine scope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-scope/) (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
 
@@ -298,7 +301,7 @@ Instead of awaiting the results directly, we await them inside another coroutine
 
 [See here](https://github.com/kstolen0/kotlin-coroutines/blob/async/src/main/kotlin/Main.kt) for the full code.
 
-# structured concurrency
+# Structured concurrency
 
 Kotlin uses structured concurrency to manage concurrent tasks. This ensures Jobs are not lost and avoids memory leaks which makes concurrent processes safer to manage. 
 
@@ -349,5 +352,5 @@ For further reading I would highly recommend:
 * The [official kotlin docs](https://kotlinlang.org/docs/coroutines-guide.html) for exploring all the library features which covers those other topics this article didn't get to
 * [Coroutines: Concurrency in Kotlin](https://www.youtube.com/watch?v=e7tKQDJsTGs) YouTube video by Dave Leeds for a great illustrated explanation of Kotlin coroutines
 * [Kotlin Coroutines Series](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Rock the JVM which dives a little deeper into the code
-* [Grokking Concurrency](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Kirill Bobrov for a more theoretical understanding of concurrent systems, patterns, and problems that may arise
+* [Grokking Concurrency](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Kirill Bobrov for a more theoretical understanding of concurrent systems, problems that are introduced by concurrency, and patterns to address them. As well as techniques for breaking down a problem to identify potential areas for concurrency
 
