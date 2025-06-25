@@ -14,7 +14,7 @@ This article aims to give you an introduction to the world of concurrency, how c
 
 # What's the difference between serial, concurrent, and parallel tasks?
 
-This question usually comes up when talking about concurrency So let's get this out of the way.
+This question usually comes up when talking about concurrency so let's get this out of the way.
 
 
 ![serial tasks](/assets/2025-06-16-concurrency/ser-tasks.png)
