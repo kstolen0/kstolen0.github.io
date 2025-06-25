@@ -8,10 +8,9 @@ description: What is concurrency, how do computer systems enable concurrency, an
 
 When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flow` just to name a few.
 
-I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. So I did a bit of research and chat to some colleagues and thought I'd share what I've learned along the way. 
+I didn't know what most of these meant or why they were used so I thought I'd do a little investigating. After a bit of research and chatting to some colleagues it turns out it was all about concurrency and coroutines! 
 
 This article aims to give you an introduction to the world of concurrency, how computers enable concurrent processes, and demystify a lot of the concurrency tools available in Kotlin.
-
 
 # What's the difference between serial, concurrent, and parallel tasks?
 
