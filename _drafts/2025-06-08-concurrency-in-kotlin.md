@@ -348,6 +348,6 @@ For further reading I would highly recommend:
 
 * The [official kotlin docs](https://kotlinlang.org/docs/coroutines-guide.html) for exploring all the library features which covers those other topics this article didn't get to
 * [Coroutines: Concurrency in Kotlin](https://www.youtube.com/watch?v=e7tKQDJsTGs) YouTube video by Dave Leeds for a great illustrated explanation of Kotlin coroutines
-* [Kotlin Coroutines Tuturial, Part 1](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Rock the JVM which dives a little deeper into the code
+* [Kotlin Coroutines Series](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Rock the JVM which dives a little deeper into the code
 * [Grokking Concurrency](https://www.youtube.com/watch?v=Wpco6IK1hmY) by Kirill Bobrov for a more theoretical understanding of concurrent systems, patterns, and problems that may arise
 
