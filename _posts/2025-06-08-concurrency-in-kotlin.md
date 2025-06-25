@@ -3,7 +3,7 @@ layout: post
 title: "Concurrency and Kotlin"
 date: 2025-6-7 16:00:00 +0800
 categories: concurrency threads coroutines kotlin
-description: What is concurrency and how can you leverage it in Kotlin
+description: What is concurrency, how do computer systems enable concurrency, and how can I enable concurrent processes in my Kotlin projects?
 ---
 
 When I was first introduced to a Kotlin codebase, there were a lot of terms scattered throughout the project; `suspend`, `runBlocking`, `Flow` just to name a few.
