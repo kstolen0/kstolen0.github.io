@@ -99,7 +99,7 @@ While processes can spawn their own child processes, these child processes are s
 
 ## Threads
 
-Threads are defined as an independent stream of instructions whose execution can be scheduled by the OS.
+A thread is an independent stream of instructions the execution of which is managed by the OS.
 
 Processes can spawn multiple threads to execute instructions concurrently. These threads share the resources and memory space of the process they're created in which simplifies sharing resources between threads.
 
@@ -107,7 +107,7 @@ With the introduction of threads, the process can be viewed as the container for
 
 ![separation of process and its threads](/assets/2025-06-16-concurrency/process-threads.png)
 
-Threads are managed in the kernel space via a scheduler which allocates CPU time to threads. 
+Threads are managed in the kernel space via a scheduler which allocates CPU time to thread execution. 
 
 Thread management is limited by the number of CPU cores as the more threads per CPU core the more time the kernel will need to spend scheduling each thread, which is time not spent executing threads.
 
@@ -123,7 +123,7 @@ When a virtual thread is blocked, it is considered `suspended`. Its state is sto
 
 # Concurrency in Kotlin
 
-OK. With all that out of the way, let's get into the code! Concurrency is enabled in Kotlin via the use of traditional threads and virtual threads, known as `coroutines`. 
+OK. With all that out of the way, let's get into the code! Concurrency is enabled in Kotlin via the use of traditional threads and virtual threads, known as [coroutines](https://kotlinlang.org/docs/coroutines-overview.html). 
 
 Coroutines can be created and managed via the Kotlin standard library, but most projects use the official [kotlinx-coroutines](https://github.com/Kotlin/kotlinx.coroutines) library for it's intuitive coroutine builders, so these examples will be using that library.
 
@@ -144,13 +144,13 @@ suspend fun foo() {
 
 In the above example `foo` is a suspending function. It can call other suspending functions just the same as any non-suspending function. 
 
-Here, it is calling `yield`, a suspend function provided by the kotlinx library which suspends the current coroutine and immediately schedules it so the next scheduled coroutine can execute.
+Here, it is calling [yield](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/yield.html), a suspend function provided by the kotlinx library which suspends the current coroutine and immediately schedules it so the next scheduled coroutine can execute.
 
 Calling suspend functions in a coroutine context wont run concurrently by default. For that we need some additional coroutine builders.
 
 # launching a coroutine
 
-`launch` Creates a new Job and runs it concurrently so it doesn't block the current execution context. When run within a coroutine scope (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
+[launch](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/launch.html) creates a new Job and runs it concurrently so it doesn't block the current execution context. When run within a [coroutine scope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-coroutine-scope/) (which is a blocking operation) the scope will not exit until all launched Jobs have completed.
 
 ```kotlin 
 // create a coroutine context
@@ -179,7 +179,7 @@ runBlocking {
 ```
 ![launch output](/assets/2025-06-16-concurrency/launch-output.png)
 
-In the above example, we created a coroutine context with `runBlocking` witch enables the use of coroutine functions. 
+In the above example, we created a coroutine context with [runBlocking](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/run-blocking.html) witch enables the use of coroutine functions. 
 
 Inside that context, we launched two coroutines which each printed out a line before yielding to the other coroutine.
 
@@ -188,9 +188,9 @@ Inside that context, we launched two coroutines which each printed out a line be
 
 ## Waiting for the Job to complete (join)
 
-Often you may want to run multiple jobs concurrently, and only run other tasks once the previous jobs are completed. 
+Often you may want to run multiple [Jobs](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-job/) concurrently, and only run other tasks once the previous jobs are completed. 
 
-For this you can use the `join` method from the launched job which suspends the coroutine until the job has completed.
+For this you can use the [join](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-job/join.html) method from the launched job which suspends the coroutine until the job has completed.
 
 Take the following code:
 
@@ -220,7 +220,7 @@ Which produces the output:
 
 ![output of joining jobs](/assets/2025-06-16-concurrency/join-output.png)
 
-Another method of achieving this is to launch the jobs in a new `coroutineScope` which creates a new coroutine context, inheriting the existing context, and suspends the current coroutine until all jobs in its scope have completed.
+Another method of achieving this is to launch the jobs in a new [coroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/coroutine-scope.html) which creates a new coroutine context, inheriting the existing context, and suspends the current coroutine until all jobs in its scope have completed.
 
 ```kotlin
 // create a coroutine context
@@ -245,9 +245,9 @@ runBlocking {
 
 # Returning values from a Job (async)
 
-`async` operates similar to `launch` however this returns a `Deferred` object. `Deferred` objects are a type of future object. 
+[async](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html) operates similar to `launch` however this returns a [Deferred](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/-deferred/) object. `Deferred` objects are a type of future object. 
 
-A future object is a "promise" that at some point a value will be returned, or an error will be thrown. To access the result you can call `await` the result which will suspend the current coroutine until the result or error is available.
+A future object is a "promise" that at some point a value will be returned, or an error will be thrown. To access the result you can call [await](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/await.html) the result which will suspend the current coroutine until the result or error is available.
 
 ```kotlin
 // create coroutine context
@@ -260,13 +260,14 @@ runBlocking {
   // before returning "world"
   val taskOne = async {
       yield()
-      "world"
+      " world"
   }
   // taskTwo immediately returns "hello"
   val taskTwo = async {
-      // uncomment the below line to also cancel the
+      // uncommenting the two lines below will also cancel the
       // job awaiting the result from taskTwo
       // cancel()
+      // yield()
       "hello"
   }
 
@@ -275,11 +276,11 @@ runBlocking {
       // await suspends the current coroutine
       // until the result is available.
       // if the job was cancelled then this job will also be cancelled
-      println(taskOne.await())
+      print(taskOne.await())
   }
   
   launch {
-      println(taskTwo.await())
+      print(taskTwo.await())
   }
 }
 ```
@@ -289,7 +290,7 @@ The above is one of the more complicated "hello world" programs.
 
 We create a coroutine context as usual. 
 
-We then launch an `async` job which returns a `Deferred`. The job immediately yields so the next coroutine can run before returning "world".
+We then launch an `async` job which returns a `Deferred`. The job immediately yields so the next coroutine can run before returning " world".
 
 We then launch another `async` job. This job simply returns "hello".
 
@@ -305,13 +306,13 @@ Within a coroutine context, coroutines are managed in a hierarchy such that pare
 
 ![job hierarchy](/assets/2025-06-16-concurrency/job-context.png)
 
-`runBlocking` is the first step in introducing structured concurrency. `runBlocking` creates a coroutine context which bridges the gap between blocking (serial) and non-blocking (concurrent) code. 
+[runBlocking](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/run-blocking.html) is the first step in introducing structured concurrency. `runBlocking` creates a coroutine context which bridges the gap between blocking (serial) and non-blocking (concurrent) code. 
 
 This function blocks the current thread until all Jobs within its scope have completed.
 
 `runBlocking` does not preserve the existing coroutine context so avoid scattering this throughout your code. Typically this is only run at the entry point of a program.
 
-`coroutineScope` is similar to `runBlocking` however it maintains the current coroutine context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesn't block the underlying thread, it only suspends the current coroutine. 
+[coroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/coroutine-scope.html) is similar to `runBlocking` however it maintains the current coroutine context when creating new Jobs. Unlike `runBlocking`, `coroutineScope` doesn't block the underlying thread, it only suspends the current coroutine. 
 
 New coroutines can be created within these scopes (via `launch` and `async`). Kotlin will keep track of these jobs so that the parent jobs will not complete until all its child jobs have completed. 
 
@@ -327,10 +328,10 @@ Hopefully this article gave a better understanding of how concurrency is enabled
 * All processes have at least one thread
 * coroutines are managed by the process they run in
 * coroutines can be suspended so the underlying thread can execute other coroutines
-* use `runBlocking` to create a coroutine context
-* use `coroutineScope` to create an inherited coroutine context
-* use `launch` to execute a task concurrently when you don't expect a result
-* use `async` to execute a task concurrently when you do expect a result
+* use [runBlocking](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/run-blocking.html) to create a coroutine context
+* use [coroutineScope](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/coroutine-scope.html) to create an inherited coroutine context
+* use [launch](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/launch.html) to execute a task concurrently when you don't expect a result
+* use [async](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/async.html) to execute a task concurrently when you do expect a result
 
 Finally, while Kotlin provides a great framework for safely adding concurrency to your system, introducing concurrency always comes at a cost, and so should be used with careful consideration of the operations being performed.
 
@@ -338,9 +339,9 @@ Finally, while Kotlin provides a great framework for safely adding concurrency t
 
 This only scratched the surface of concurrency and the tools available in Kotlin. 
 
-You can also enable parallel operations by defining `Dispatchers`, pass data between coroutines using `channels`, set timeouts on operations using `withTimeout`, and asynchronously stream values with `Flow`.
+You can also enable parallel operations by defining [Dispatchers](https://kotlinlang.org/docs/coroutine-context-and-dispatchers.html#dispatchers-and-threads), pass data between coroutines using [channels](https://kotlinlang.org/docs/channels.html), set timeouts on operations using [withTimeout](https://kotlinlang.org/api/kotlinx.coroutines/kotlinx-coroutines-core/kotlinx.coroutines/with-timeout.html), and asynchronously stream values with [Flow](https://kotlinlang.org/docs/flow.html).
 
-We also didn't touch on the other concurrency pattern available in Kotlin, known as Reactive Concurrency. That deserves its own article.
+We also didn't touch on the other concurrency pattern available in Kotlin, known as [Reactive Concurrency](https://www.baeldung.com/cs/reactive-programming). That deserves its own article.
 
 
 For further reading I would highly recommend:
